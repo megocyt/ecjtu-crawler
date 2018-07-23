@@ -20,7 +20,7 @@ interface EducationInterface {
      * @param string $term
      * @return void
      */
-    public function credit(string $term='');
+    public function credit();
     /**
      * Schedule Query
      *
@@ -60,10 +60,10 @@ interface EducationInterface {
     /**
      * Classmate Query
      *
-     * @param string $term
+     * @param string $class_id
      * @return void
      */
-    public function classmate(string $term='');
+    public function classmate(string $class_id='');
     /**
      * Class Number Query
      *
@@ -71,5 +71,11 @@ interface EducationInterface {
      * @return void
      */
     public function class_number(string $term='');
+    /**
+     * Profile
+     *
+     * @return void
+     */
+    public function profile();
 
 }
