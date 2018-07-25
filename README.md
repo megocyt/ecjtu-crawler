@@ -2,7 +2,7 @@
 Ecjtu Crawler 是帮助开发者获取Ecjtu教务等信息，包含（教务、选课、一卡通等）
 
 - 简单的获取信息接口
-  
+  score,daily,classmate,schedule,exam,experiment,trade,trades,course...
 
 ```php
 $EcjtuManager = new \Megoc\Ecjtu\EcjtuManager([
@@ -22,9 +22,9 @@ $course = $EcjtuManager->Elective->course('2018.1');
 var_dump($course);
 
 
-## Installing Guzzle
+## Installing Ecjtu Crawler
 
-The recommended way to install Guzzle is through
+The recommended way to install Ecjtu Crawler is through
 [Composer](http://getcomposer.org).
 
 ```bash
@@ -32,10 +32,10 @@ The recommended way to install Guzzle is through
 curl -sS https://getcomposer.org/installer | php
 ```
 
-Next, run the Composer command to install the latest stable version of Guzzle:
+Next, run the Composer command to install the latest stable version of Ecjtu Crawler:
 
 ```bash
-php composer.phar require guzzlehttp/guzzle
+php composer.phar require megoc/ecjtu
 ```
 
 After installing, you need to require Composer's autoloader:
@@ -44,11 +44,8 @@ After installing, you need to require Composer's autoloader:
 require 'vendor/autoload.php';
 ```
 
-You can then later update Guzzle using composer:
+You can then later update Ecjtu Crawler using composer:
 
  ```bash
 composer.phar update
  ```
-=======
-# ecjtu-crawler
-ecjtu校园信息助手
