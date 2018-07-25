@@ -1,5 +1,3 @@
-# Ecjtu Crawler
-================
 
 Ecjtu Crawler 是帮助开发者获取Ecjtu教务等信息，包含（教务、选课、一卡通等）
 
@@ -51,3 +49,6 @@ You can then later update Guzzle using composer:
  ```bash
 composer.phar update
  ```
+=======
+# ecjtu-crawler
+ecjtu校园信息助手
