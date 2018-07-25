@@ -42,19 +42,19 @@ class EcjtuManager
     {
         $this->user = $user;
 
-        $this->Ecard = new Ecard([
-            'username' => $this->user['username'],
-            'password' => $this->user['ecard_password'],
-        ]);
+        // $this->Ecard = new Ecard([
+        //     'username' => $this->user['username'],
+        //     'password' => $this->user['ecard_password'],
+        // ]);
         // $this->Education = new Education([
         //     'username' => $this->user['username'],
         //     'password' => $this->user['jwxt_password'],
         // ]);
 
-        // $this->Elective = new Elective([
-        //     'username' => $this->user['username'],
-        //     'password' => $this->user['jwxt_password'],
-        // ]);
+        $this->Elective = new Elective([
+            'username' => $this->user['username'],
+            'password' => $this->user['jwxt_password'],
+        ]);
 
         // new Login();
     }

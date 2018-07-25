@@ -63,6 +63,12 @@ class Login implements LoginInterface
      */
     protected $codeUrl;
     /**
+     * identify user form
+     *
+     * @var [type]
+     */
+    protected $user_id_form;
+    /**
      * cache handler
      *
      * @var [type]
@@ -73,9 +79,7 @@ class Login implements LoginInterface
     public function __construct()
     {
         $this->cacheHandler = new FilesystemCache();
-        // var_dump($this->cacheHandler);exit;
         // $this->cacheHandler->clear();exit;
-        // $this->verifyCode('http://jwxt.ecjtu.jx.cn/servlet/code.servlet');
 
         return ;
     }
@@ -147,6 +151,7 @@ class Login implements LoginInterface
         }
 
         $this->form = $form;
+        $this->user_id_form = $form;
 
         return $this;
     }
@@ -189,6 +194,11 @@ class Login implements LoginInterface
         if (!$this->formAction) {
             return '';
         }
+
+        if (!$this->verifyCode && $this->codeUrl) {
+            $this->verifyCode($this->codeUrl);
+        }
+
         /**
          * construct request params
          */
@@ -232,14 +242,33 @@ class Login implements LoginInterface
                 $this->session_id = str_replace('Path=/; HttpOnly', '', $this->session_id);
             }
 
+            /**
+             * if http code equal 200
+             * do request success action
+             */
            if ($http_code == 200) {
-                $crawler         = new Crawler($html);
-                $ecard_error_tip = '';
-                // echo($crawler->html());
+                $crawler            = new Crawler($html);
+                $ecard_error_tip    = '';
+
                 try {
-                    $ecard_error_tip = $crawler->filter('p.biaotou')->text();
+                    $ecard_error_tip    = $crawler->filter('p.biaotou')->text();
                 } catch (\Exception $e) {
                     // var_dump($e);
+                }
+
+                /**
+                 * decide whether login succeed
+                 */
+                if (preg_match('/验证码错误/is', $html)) {
+                    if ($looper > 3) {
+                        throw new \Exception("Verify code error, program have attempt " . ${looper}-1 . " times", 1);
+                    }
+                    $looper++;
+                    $this->verifyCode($this->codeUrl)->login($submit_url);
+                }
+
+                if (preg_match('/用户名或密码错误/is', $html)) {
+                    throw new \Exception("Username or password error", 1);
                 }
 
                 if (preg_match('/success/is', $html)) {
@@ -248,12 +277,11 @@ class Login implements LoginInterface
                     return $this->session_id();
                 }
 
-                if (preg_match('/验证码错误/is', $html)) {
-                    if ($looper > 3) {
-                        return null;
-                    }
-                    $looper++;
-                    $this->verifyCode($this->codeUrl)->login($submit_url);
+                if (preg_match('/个人信息/is', $html)) {
+                    var_dump(31314);
+                    $this->session_id($this->session_id);
+                    $this->is_logined(true);
+                    return $this->session_id();
                 }
 
                 if (empty($ecard_error_tip)) {
@@ -265,20 +293,21 @@ class Login implements LoginInterface
 
             return null;
         } catch (\Exception $e) {
-            var_dump($e);
+            // var_dump($e);
         }
     }
     /**
-     * check login status
+     * check or set login status
      *
+     * @param boolean $set_status
      * @return boolean
      */
     public function is_logined(bool $set_status = false)
     {
         if (empty($this->username)) {
-            $key = $this->formAction . 'logined:' . join('||', $this->form);
+            $key = $this->formAction . ' || logined:' . join(' || ', $this->user_id_form);
         } else {
-            $key = $this->formAction . 'logined:' . $this->username();
+            $key = $this->formAction . ' || logined:' . $this->username();
         }
 
         $login_key = $this->hash($key);
@@ -301,14 +330,23 @@ class Login implements LoginInterface
      */
     public function verifyCode(string $code_uri = '')
     {
-        if ($code_uri) {
-            $this->codeUrl = $code_uri;
+        $this->codeUrl = $code_uri ? : $this->codeUrl;
+
+        if (empty($this->codeUrl)) {
+            $this->verifyCode = '';
+        }
+
+        if (empty($this->username) && empty($this->form)) {
+            return $this;
         }
 
         if ($this->is_logined()) {
             return $this;
         }
 
+        /**
+         * construct guzzle clinet handler
+         */
         $client = new Client([
             'verify'  => false,
             'headers' => [

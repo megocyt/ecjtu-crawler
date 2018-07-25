@@ -1,7 +1,7 @@
 <?php
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Interfaces\LoginInterface;
+use Megoc\Ecjtu\Interfaces\EducationInterface;
 use Megoc\Ecjtu\Components\Login;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
@@ -47,6 +47,7 @@ class Education implements EducationInterface
             'timeout'  => 5,
             'headers' => [
                 'Cookie' => $this->login(),
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
             ],
         ]);
     }
@@ -481,6 +482,7 @@ class Education implements EducationInterface
      */
     public function classmate(string $class_id='')
     {
+        \var_dump($this);
         if (empty($class_id)) {
             $profile  = $this->profile();
             $class_id = substr($profile['zaibanbianhao'], 0, 14);            
