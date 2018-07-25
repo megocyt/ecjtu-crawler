@@ -1,6 +1,6 @@
 {
     "name": "megoc/ecjtu",
-    "description": "Ecjtu school information crawler",
+    "description": "Ecjtu school information crawler,make it easy to get you wanted thing",
     "type": "library",
     "license": "MIT",
     "authors": [{
@@ -19,7 +19,5 @@
         "psr-4": {
             "Megoc\\Ecjtu\\": "src/"
         }
-    },
-    "minimum-stability": "dev"
-
+    }
 }
