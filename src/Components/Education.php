@@ -1,6 +1,8 @@
 <?php
-namespace Megoc\Ecjtu;
+namespace Megoc\Ecjtu\Components;
 
+use Megoc\Ecjtu\Interfaces\LoginInterface;
+use Megoc\Ecjtu\Components\Login;
 use GuzzleHttp\Client;
 use Symfony\Component\DomCrawler\Crawler;
 
@@ -625,7 +627,7 @@ class Education implements EducationInterface
         if (empty($this->username) || empty($this->password)) {
             return '';
         }
-        $LoginHandler = new \Megoc\Ecjtu\Login;
+        $LoginHandler = new Login;
         $LoginHandler->username($this->username);
         $LoginHandler->password($this->password);
 

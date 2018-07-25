@@ -1,9 +1,11 @@
 <?php
-namespace Megoc\Ecjtu;
+namespace Megoc\Ecjtu\Components;
 
+use Megoc\Ecjtu\Interfaces\LoginInterface;
 use Symfony\Component\Cache\Simple\FilesystemCache;
 use GuzzleHttp\Client;
 use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
+use Symfony\Component\DomCrawler\Crawler;
 
 /**
  * Login 
@@ -199,6 +201,11 @@ class Login implements LoginInterface
             if (!empty($this->verifyCode)) {
                 $this->form['code'] = $this->verifyCode;
             }
+        } else {
+            if (!empty($this->form['verifyCodeName'])) {
+                $this->form[$this->form['verifyCodeName']] = $this->verifyCode;
+                unset($this->form['verifyCodeName']);
+            }
         }
 
         /**
@@ -220,12 +227,27 @@ class Login implements LoginInterface
             $html      = $response->getBody()->getContents();
             $headers   = $response->getHeaders();
 
+            if (empty($this->session_id)) {
+                $this->session_id = join('', $response->getHeader('Set-Cookie'));
+                $this->session_id = str_replace('Path=/; HttpOnly', '', $this->session_id);
+            }
+
            if ($http_code == 200) {
+                $crawler         = new Crawler($html);
+                $ecard_error_tip = '';
+                // echo($crawler->html());
+                try {
+                    $ecard_error_tip = $crawler->filter('p.biaotou')->text();
+                } catch (\Exception $e) {
+                    // var_dump($e);
+                }
+
                 if (preg_match('/success/is', $html)) {
                     $this->session_id($this->session_id);
                     $this->is_logined(true);
                     return $this->session_id();
                 }
+
                 if (preg_match('/验证码错误/is', $html)) {
                     if ($looper > 3) {
                         return null;
@@ -233,11 +255,17 @@ class Login implements LoginInterface
                     $looper++;
                     $this->verifyCode($this->codeUrl)->login($submit_url);
                 }
+
+                if (empty($ecard_error_tip)) {
+                    $this->session_id($this->session_id);
+                    $this->is_logined(true);
+                    return $this->session_id();
+                }
             }
 
             return null;
         } catch (\Exception $e) {
-            var_dump($e->getResponse());
+            var_dump($e);
         }
     }
     /**
@@ -247,8 +275,14 @@ class Login implements LoginInterface
      */
     public function is_logined(bool $set_status = false)
     {
-        $login_key = $this->hash('logined:' . $this->username());
+        if (empty($this->username)) {
+            $key = $this->formAction . 'logined:' . join('||', $this->form);
+        } else {
+            $key = $this->formAction . 'logined:' . $this->username();
+        }
 
+        $login_key = $this->hash($key);
+        
         if ($set_status) {
             $this->cacheHandler->set($login_key, true, 3600);
         } else {
@@ -288,7 +322,6 @@ class Login implements LoginInterface
             $image_stream     = $response->getBody()->getContents();
             $this->session_id = join('', $response->getHeader('Set-Cookie'));
             $this->session_id = str_replace('Path=/; HttpOnly', '', $this->session_id);
-
             $OCR = new EcjtuOCR($image_stream);
             $this->verifyCode = $OCR->result();
             return $this;

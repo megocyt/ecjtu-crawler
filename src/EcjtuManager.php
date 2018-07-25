@@ -1,6 +1,11 @@
 <?php
 namespace Megoc\Ecjtu;
 
+use Megoc\Ecjtu\Components\Ecard;
+use Megoc\Ecjtu\Components\Education;
+use Megoc\Ecjtu\Components\Elective;
+use Megoc\Ecjtu\Components\Login;
+
 /**
  * Ecjtu Manager 
  * Author: Megoc <megoc@megoc.org>
@@ -37,19 +42,19 @@ class EcjtuManager
     {
         $this->user = $user;
 
-        $this->Ecard = new \Megoc\Ecjtu\Ecard([
+        $this->Ecard = new Ecard([
             'username' => $this->user['username'],
             'password' => $this->user['ecard_password'],
         ]);
-        $this->Education = new \Megoc\Ecjtu\Education([
-            'username' => $this->user['username'],
-            'password' => $this->user['jwxt_password'],
-        ]);
+        // $this->Education = new Education([
+        //     'username' => $this->user['username'],
+        //     'password' => $this->user['jwxt_password'],
+        // ]);
 
-        $this->Elective = new \Megoc\Ecjtu\Elective([
-            'username' => $this->user['username'],
-            'password' => $this->user['jwxt_password'],
-        ]);
+        // $this->Elective = new Elective([
+        //     'username' => $this->user['username'],
+        //     'password' => $this->user['jwxt_password'],
+        // ]);
 
         // new Login();
     }

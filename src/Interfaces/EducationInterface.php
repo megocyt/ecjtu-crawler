@@ -1,5 +1,5 @@
 <?php
-namespace Megoc\Ecjtu;
+namespace Megoc\Ecjtu\Interfaces;
 
 /**
  * EducationInterface
