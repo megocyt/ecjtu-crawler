@@ -45,6 +45,12 @@ class Login implements LoginInterface
      */
     protected $cache_key;
     /**
+     * cache expire
+     *
+     * @var integer
+     */
+    protected $cache_expire = 1800;
+    /**
      * form data
      *
      * @var [type]
@@ -105,7 +111,7 @@ class Login implements LoginInterface
             }
             return $this->cacheHandler->get($this->cache_key);
         } else {
-            $this->cacheHandler->set($this->cache_key, $session_id, 3600);
+            $this->cacheHandler->set($this->cache_key, $session_id, $this->cache_expire);
         }
     }
     /**
@@ -260,11 +266,12 @@ class Login implements LoginInterface
                  * decide whether login succeed
                  */
                 if (preg_match('/验证码错误/is', $html)) {
-                    if ($looper > 3) {
-                        throw new \Exception("Verify code error, program have attempt " . ${looper}-1 . " times", 1);
+                    if ($looper < 3) {
+                        $looper++;
+                        $this->verifyCode($this->codeUrl)->login($submit_url);
+                    } else {
+                        throw new \Exception("Verify code error, program have attempt " . ($looper-1) . " times", 1);
                     }
-                    $looper++;
-                    $this->verifyCode($this->codeUrl)->login($submit_url);
                 }
 
                 if (preg_match('/用户名或密码错误/is', $html)) {
@@ -305,15 +312,15 @@ class Login implements LoginInterface
     public function is_logined(bool $set_status = false)
     {
         if (empty($this->username)) {
-            $key = $this->formAction . ' || logined:' . join(' || ', $this->user_id_form);
+            $key = $this->codeUrl . ' || logined:' . join(' || ', $this->user_id_form);
         } else {
-            $key = $this->formAction . ' || logined:' . $this->username();
+            $key = $this->codeUrl . ' || logined:' . $this->username();
         }
 
         $login_key = $this->hash($key);
         
         if ($set_status) {
-            $this->cacheHandler->set($login_key, true, 3600);
+            $this->cacheHandler->set($login_key, true, $this->cache_expire);
         } else {
             if ($this->cacheHandler->get($login_key)) {
                 return true;

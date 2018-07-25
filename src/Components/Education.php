@@ -51,6 +51,7 @@ class Education implements EducationInterface
             ],
         ]);
     }
+    
     /**
      * Score Query
      *
@@ -482,7 +483,6 @@ class Education implements EducationInterface
      */
     public function classmate(string $class_id='')
     {
-        \var_dump($this);
         if (empty($class_id)) {
             $profile  = $this->profile();
             $class_id = substr($profile['zaibanbianhao'], 0, 14);            
