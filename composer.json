@@ -23,5 +23,6 @@
         "psr-4": {
             "Megoc\\Ecjtu\\": "src/"
         }
-    }
+    },
+    "minimum-stability": "dev"
 }
