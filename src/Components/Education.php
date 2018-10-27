@@ -188,6 +188,61 @@ class Education implements EducationInterface
         return $credit;
     }
     /**
+     * second credit
+     *
+     * @return void
+     */
+    public function second_credit()
+    {
+        $uri      = 'scoreQuery/secondCreQue_findSecondCredit.action';
+        $response = $this->clientHandler->get($uri);
+        $html     = $response->getBody()->getContents();
+        $crawler  = new Crawler($html);
+
+        $username      = '';
+        $student_id    = '';
+        $th            = [];
+        $tr            = [];
+        $second_credit = [];
+        
+        $crawler->filter('.type_s1')->each(function (Crawler $node, $i) use (&$th)
+        {
+            $th[] = $node->text();
+        });
+
+        $crawler->filter('table tr')->each(function (Crawler $node, $i) use (&$tr, &$username, &$student_id)
+        {
+            if ($i == 0) return ;
+
+            $td = [];
+            $node->filter('td')->each(function (Crawler $node, $i) use (&$td)
+            {
+                $td[] = $node->text();
+            });
+
+            if (!empty($td)) {
+                $username   = $username ? : $td[1];
+                $student_id = $student_id ? : $td[2];
+
+                $tr[] = [
+                    'kechuang'      => $td[2],
+                    'wentiyishu'    => $td[3],
+                    'zhiyuanfuwu'   => $td[4],
+                    'shehuigongzuo' => $td[5],
+                ];
+            }
+        });
+
+        foreach ($th as $k => $v) {
+            $second_credit[] = [
+                'title'   => str_replace('  ', ' ', $v),
+                'credits' => $tr[$k]
+            ];
+        }
+
+        return $second_credit;
+    }
+    /**
      * Schedule
      *
      * @param string $term
@@ -618,6 +673,64 @@ class Education implements EducationInterface
         });
 
         return $numbers;
+    }
+    /**
+     * get class list
+     *
+     * @param string $grade
+     * @param string $major
+     * @return void
+     */
+    public function class_list($major='' ,$grade='')
+    {
+        if (empty($grade)) {
+            $grade = date('Y');
+        }
+
+        if (empty($major)) {
+            return [];
+        }
+
+        $response = $this->clientHandler->post('infoQuery/class_findClaByDepGra.action', [
+            'form_params' => [
+                'depInfo.departMent' => $major,
+                'gra.grade'          => $grade,
+            ]
+        ]);
+        $html       = $response->getBody()->getContents();
+        $crawler    = new Crawler($html);
+        $class_list = [];
+
+        $crawler->filter('option')->each(function (Crawler $node, $i) use (&$class_list) {
+            if ($i == 0) return;
+
+            $class_list[] = [
+                'class_id'   => $node->attr('value'),
+                'class_name' => $node->text(),
+            ];
+       });
+
+       return $class_list;
+    }
+    /**
+     * get college list
+     *
+     * @return void
+     */
+    public function college_list()
+    {
+        $response     = $this->clientHandler->get('infoQuery/class_findClassList.action');
+        $html         = $response->getBody()->getContents();
+        $crawler      = new Crawler($html);
+        $college_list = [];
+
+        $crawler->filter('#departMent option')->each(function (Crawler $node, $i) use (&$college_list) {
+            if ($i == 0) return;
+
+            $college_list[] = $node->text();
+       });
+
+       return $college_list;
     }
     /**
      * login
