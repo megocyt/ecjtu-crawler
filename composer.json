@@ -10,11 +10,11 @@
     }],
     "require": {
         "php": ">=5.6",
-        "symfony/cache": "^3.4",
-        "guzzlehttp/guzzle": "^6.3",
-        "symfony/css-selector": "^3.4",
-        "symfony/dom-crawler": "^3.4",
-        "overtrue/pinyin": "^3.0"
+        "symfony/cache": ">=3.0",
+        "guzzlehttp/guzzle": ">=6.0",
+        "symfony/css-selector": ">=3.0",
+        "symfony/dom-crawler": ">=3.0",
+        "overtrue/pinyin": ">=3.0"
     },
     "require-dev": {
         "php": ">=7.0"
@@ -23,6 +23,5 @@
         "psr-4": {
             "Megoc\\Ecjtu\\": "src/"
         }
-    },
-    "minimum-stability": "dev"
+    }
 }
