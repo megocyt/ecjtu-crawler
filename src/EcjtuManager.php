@@ -19,44 +19,73 @@ class EcjtuManager
      * @var [type]
      */
     protected $user;
-    /**
-     * Ecard system
-     *
-     * @var [type]
-     */
-    public $Ecard;
-    /**
-     * Education manager system
-     *
-     * @var [type]
-     */
-    public $Education;
-    /**
-     * Elective manager system
-     *
-     * @var [type]
-     */
-    public $Elective;
+
 
     public function __construct($user = [])
     {
         $this->user = $user;
-
+    }
+    
+    /**
+     * 获取Ecard 对象
+     *
+     * @return Object Ecard
+     */
+    public function getEcard()
+    {
+        if (empty($this->user['username']) || empty($this->user['ecard_password'])) {
+            return ;
+        }
+        
         $this->Ecard = new Ecard([
             'username' => $this->user['username'],
             'password' => $this->user['ecard_password'],
         ]);
-        
+
+        return $this->Ecard;
+    }
+
+    /**
+     * 获取教务系统对象
+     *
+     * @return Object Education
+     */
+    public function getEducation()
+    {
+        if (empty($this->user['username']) || empty($this->user['jwxt_password'])) {
+            return ;
+        }
+
         $this->Education = new Education([
             'username' => $this->user['username'],
             'password' => $this->user['jwxt_password'],
         ]);
 
+        return $this->Education;
+    }
+
+    /**
+     * 获取选课系统对象
+     *
+     * @return Object Elective
+     */
+    public function getElective()
+    {
+        if (empty($this->user['username']) || empty($this->user['jwxt_password'])) {
+            return ;
+        }
+
         $this->Elective = new Elective([
             'username' => $this->user['username'],
             'password' => $this->user['jwxt_password'],
         ]);
-
+        
+        return $this->Elective;
     }
-    
+
+    public function __get($property_name)
+    {
+        $method = 'get' . $property_name;
+        return $this->$method();
+    }
 }

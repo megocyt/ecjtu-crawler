@@ -7,18 +7,18 @@ Ecjtu Crawler 是帮助开发者获取Ecjtu教务等信息，包含（教务、�
 ```php
 $EcjtuManager = new \Megoc\Ecjtu\EcjtuManager([
     'username'       => 'student_id',
-    'jwxt_password'  => 'educative password',
+    'jwxt_password'  => 'education password',
     'ecard_password' => 'ecard password'
 ]);
 
 // 一卡通当日消费
-$trade = $EcjtuManager->Ecard->trade();
+$trade = $EcjtuManager->getEcard()->trade();
 var_dump($trade);
 // 获取2018.1学期的成绩
-$score = $EcjtuManager->Education->score('2018.1');
+$score = $EcjtuManager->getEducation()->score('2018.1');
 var_dump($score);
 // 获取2018.1的选课
-$course = $EcjtuManager->Elective->course('2018.1');
+$course = $EcjtuManager->getElective()->course('2018.1');
 var_dump($course);
 
 

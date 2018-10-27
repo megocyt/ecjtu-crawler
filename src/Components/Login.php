@@ -121,7 +121,7 @@ class Login implements LoginInterface
      */
     protected function hash($key='')
     {
-        $key = $key ? : $this->formAction . '| |' . $this->username();
+        $key = $key . $this->password ? : $this->formAction . '| |' . $this->username() . $this->password;
         return md5(sha1($key));
     }
     /**
@@ -229,7 +229,7 @@ class Login implements LoginInterface
          */
         $client = new Client([
             'headers' => [
-                'Cookie' => $this->session_id(),
+                'Cookie'     => $this->session_id(),
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
             ],
         ]);
