@@ -4,6 +4,7 @@ namespace Megoc\Ecjtu\Components;
 use Megoc\Ecjtu\Interfaces\EducationInterface;
 use Megoc\Ecjtu\Components\Login;
 use GuzzleHttp\Client;
+use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
 use Symfony\Component\DomCrawler\Crawler;
 
 /**
@@ -731,6 +732,63 @@ class Education implements EducationInterface
        });
 
        return $college_list;
+    }
+    /**
+     * check password
+     *
+     * @param string $username
+     * @param string $password
+     * @return void
+     */
+    public static function ckeck_password($username='', $password='')
+    {
+        static $looper = 0; $looper++;
+        
+        $client = new Client([
+            'verify'  => false,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+            ],
+        ]);
+
+        try {
+            $response     = $client->get('http://jwxt.ecjtu.jx.cn/servlet/code.servlet');
+            $image_stream = $response->getBody()->getContents();
+            $session_id   = join('', $response->getHeader('Set-Cookie'));
+            $session_id   = str_replace('Path=/; HttpOnly', '', $session_id);
+            $OCR          = new EcjtuOCR($image_stream);
+            $captcha      = $OCR->result();
+
+            $form = [
+                'UserName' => $username,
+                'Password' => md5($password),
+                'code'     => $captcha
+            ];
+    
+            $response1 = $client->post('http://jwxt.ecjtu.jx.cn/stuMag/Login_login.action', [
+                'form_params' => $form,
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+                    'Cookie: ' => $session_id,
+                ],
+            ]);
+            $html = $response1->getBody()->getContents();
+
+            if (preg_match('/success/is', $html)) {
+                return true;
+            } elseif (preg_match('/验证码错误/is', $html)) {
+                if ($looper > 3) {
+                    throw new \Exception("Verify code error, program have attempt " . ($looper-1) . " times", 1);
+                } else {
+                    return self::ckeck_password($username, $password);
+                }
+            } else {
+                return false;
+            }
+
+        } catch (\Exception $e) {
+            return false;
+        }
     }
     /**
      * login

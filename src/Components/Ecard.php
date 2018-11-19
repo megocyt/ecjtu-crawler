@@ -290,6 +290,49 @@ class Ecard implements EcardInterface
 
         return $account['zhanghu'] ? : '';
     }
+    /**
+     * check password
+     *
+     * @param string $username
+     * @param string $password
+     * @return void
+     */
+    public static function check_password($username='', $password='')
+    {
+        $client = new Client([
+            'verify'  => false,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+            ],
+        ]);
+
+        try {
+            $form = [
+                'name'         => $username,
+                'passwd'       => $password,
+                'loginType'    => 2,
+                'userType'     => 1,
+                'rand'         => ' ',
+                'imageField.x' => 32,
+                'imageField.y' => 17,
+                ];
+
+            $response1 = $client->post('http://ecard.ecjtu.jx.cn/loginstudent.action', [
+                'form_params' => $form,
+            ]);
+            
+            $html = $response1->getBody()->getContents();
+            if (preg_match('/pages\/top\.jsp.*mainFrame\.action/is', $html)) {
+                return true;
+            } else {
+                return false;
+            }
+
+        } catch (\Exception $e) {
+            return false;
+        }
+
+    }
     
     /**
      * login

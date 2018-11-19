@@ -285,7 +285,6 @@ class Login implements LoginInterface
                 }
 
                 if (preg_match('/个人信息/is', $html)) {
-                    var_dump(31314);
                     $this->session_id($this->session_id);
                     $this->is_logined(true);
                     return $this->session_id();

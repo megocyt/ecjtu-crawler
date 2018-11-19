@@ -82,7 +82,34 @@ class EcjtuManager
         
         return $this->Elective;
     }
-
+    /**
+     * check education manager system account info
+     *
+     * @param string $username
+     * @param string $password
+     * @return void
+     */
+    public static function check_education_password($username='', $password='')
+    {
+        return Education::ckeck_password($username, $password);
+    }
+    /**
+     * check ecard manager system account info
+     *
+     * @param string $username
+     * @param string $password
+     * @return void
+     */
+    public static function check_ecard_password($username='', $password='')
+    {
+        return Ecard::check_password($username, $password);
+    }
+    /**
+     * magic method
+     *
+     * @param [type] $property_name
+     * @return void
+     */
     public function __get($property_name)
     {
         $method = 'get' . $property_name;
