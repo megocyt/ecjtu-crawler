@@ -57,15 +57,19 @@ class Education implements EducationInterface
      * Score Query
      *
      * @param string $term
-     * @return void
+     * @return string (unassess teacher's work) or array (score info)
      */
     public function score(string $term='')
     {
         $response = $this->clientHandler->get('scoreQuery/stuScoreQue_getStuScore.action');
         $html     = $response->getBody()->getContents();
-        $crawler  = new Crawler($html);
 
-        $terms = [];
+        if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
+            return '未评教完成，不能进行成绩查询！';
+        }
+
+        $crawler = new Crawler($html);
+        $terms   = [];
         $crawler->filter('.s_term li')->each(function (Crawler $node, $i) use (&$terms)
         {
             $terms[] = $node->text();
