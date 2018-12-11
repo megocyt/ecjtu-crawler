@@ -16,10 +16,8 @@ class Education implements EducationInterface
 {
     /**
      * base url
-     *
-     * @var string
      */
-    protected $baseUrl = 'http://jwxt.ecjtu.jx.cn/';
+    const URL = 'http://jwxt.ecjtu.edu.cn/';
     /**
      * username
      *
@@ -39,15 +37,19 @@ class Education implements EducationInterface
      */
     protected $clientHandler;
 
-
+    /**
+     * construct
+     *
+     * @param array $user
+     */
     public function __construct(array $user)
     {
         $this->set_user($user);
         $this->clientHandler = new Client([
-            'base_uri' => $this->baseUrl,
+            'base_uri' => self::URL,
             'timeout'  => 5,
-            'headers' => [
-                'Cookie' => $this->login(),
+            'headers'  => [
+                'Cookie'     => $this->login(),
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
             ],
         ]);
@@ -57,7 +59,7 @@ class Education implements EducationInterface
      * Score Query
      *
      * @param string $term
-     * @return string (unassess teacher's work) or array (score info)
+     * @return array (score info) or string (unassess teacher's work)
      */
     public function score(string $term='')
     {
@@ -130,7 +132,7 @@ class Education implements EducationInterface
      * Credit
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function credit()
     {
@@ -195,7 +197,7 @@ class Education implements EducationInterface
     /**
      * second credit
      *
-     * @return void
+     * @return array
      */
     public function second_credit()
     {
@@ -251,7 +253,7 @@ class Education implements EducationInterface
      * Schedule
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function schedule(string $term='')
     {
@@ -332,7 +334,7 @@ class Education implements EducationInterface
      * daily calendar
      *
      * @param string $date
-     * @return void
+     * @return array
      */
     public function daily(string $date)
     {
@@ -361,7 +363,8 @@ class Education implements EducationInterface
 
         if (!empty($jsonArr)) {
             $daily['date']          = $jsonArr['date'];
-            $daily['week']          = $jsonArr['dsWeek'];
+            $daily['week']          = $jsonArr['week'];
+            $daily['ds_week']       = $jsonArr['dsWeek'];
             $daily['day']           = $jsonArr['weekDay'];
             $daily['calendar_list'] = [];
             foreach ($jsonArr['weekcalendarpojoList'] as $key => $value) {
@@ -379,7 +382,7 @@ class Education implements EducationInterface
      * Exam Query
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function exam(string $term='')
     {
@@ -434,7 +437,7 @@ class Education implements EducationInterface
      * Bexam
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function bexam(string $term='')
     {
@@ -492,7 +495,7 @@ class Education implements EducationInterface
      * Experiment
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function experiment(string $term='')
     {
@@ -539,7 +542,7 @@ class Education implements EducationInterface
     /**
      * class mates
      *
-     * @return void
+     * @return array
      */
     public function classmate(string $class_id='')
     {
@@ -585,7 +588,7 @@ class Education implements EducationInterface
     /**
      * Profile
      *
-     * @return void
+     * @return array
      */
     public function profile()
     {
@@ -631,7 +634,7 @@ class Education implements EducationInterface
      * class number
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function class_number(string $term='')
     {
@@ -655,7 +658,7 @@ class Education implements EducationInterface
             'shangkeshijian',
             'renkejiaoshi',
             'xuankeleixing',
-            'xiabanmingcheng',
+            'xiaobanmingcheng',
             'xiaobanxuhao',
         ];
 
@@ -684,7 +687,7 @@ class Education implements EducationInterface
      *
      * @param string $grade
      * @param string $major
-     * @return void
+     * @return array
      */
     public function class_list($major='' ,$grade='')
     {
@@ -720,7 +723,7 @@ class Education implements EducationInterface
     /**
      * get college list
      *
-     * @return void
+     * @return array
      */
     public function college_list()
     {
@@ -742,7 +745,7 @@ class Education implements EducationInterface
      *
      * @param string $username
      * @param string $password
-     * @return void
+     * @return bool
      */
     public static function ckeck_password($username='', $password='')
     {
@@ -756,7 +759,7 @@ class Education implements EducationInterface
         ]);
 
         try {
-            $response     = $client->get('http://jwxt.ecjtu.jx.cn/servlet/code.servlet');
+            $response     = $client->get(self::URL . 'servlet/code.servlet');
             $image_stream = $response->getBody()->getContents();
             $session_id   = join('', $response->getHeader('Set-Cookie'));
             $session_id   = str_replace('Path=/; HttpOnly', '', $session_id);
@@ -769,7 +772,7 @@ class Education implements EducationInterface
                 'code'     => $captcha
             ];
     
-            $response1 = $client->post('http://jwxt.ecjtu.jx.cn/stuMag/Login_login.action', [
+            $response1 = $client->post(self::URL . 'stuMag/Login_login.action', [
                 'form_params' => $form,
                 'headers' => [
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
@@ -797,7 +800,7 @@ class Education implements EducationInterface
     /**
      * login
      *
-     * @return void
+     * @return bool
      */
     protected function login()
     {
@@ -808,7 +811,7 @@ class Education implements EducationInterface
         $LoginHandler->username($this->username);
         $LoginHandler->password($this->password);
 
-        $login = $LoginHandler->verifyCode($this->baseUrl . 'servlet/code.servlet')->login($this->baseUrl . 'stuMag/Login_login.action');
+        $login = $LoginHandler->verifyCode(self::URL . 'servlet/code.servlet')->login(self::URL . 'stuMag/Login_login.action');
 
         return $login;
     }

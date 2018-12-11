@@ -15,7 +15,7 @@ use function GuzzleHttp\json_decode;
  */
 class Elective implements ElectiveInterface
 {
-    protected $baseUrl = 'http://xkxt.ecjtu.jx.cn/';
+    protected $baseUrl = 'http://xkxt.ecjtu.edu.cn/';
     protected $username;
     protected $password;
     protected $clientHandler;
@@ -44,7 +44,7 @@ class Elective implements ElectiveInterface
      * Get selected course
      *
      * @param string $term
-     * @return void
+     * @return array
      */
     public function course(string $term = '')
     {
@@ -82,7 +82,7 @@ class Elective implements ElectiveInterface
     /**
      * Public course list
      *
-     * @return void
+     * @return array
      */
     public function publicCourseList()
     {
@@ -196,7 +196,7 @@ class Elective implements ElectiveInterface
      * Get teacher's resume
      *
      * @param string $teacher_task_id
-     * @return void
+     * @return array
      */
     public function teacherResume(string $teacher_task_id = '')
     {
@@ -274,7 +274,7 @@ class Elective implements ElectiveInterface
      *
      * @param string $teacher_id
      * @param boolean $echo_string
-     * @return void
+     * @return string
      */
     public function teacherPhoto(string $teacher_id = '', $echo_string = true)
     {
@@ -323,7 +323,7 @@ class Elective implements ElectiveInterface
     /**
      * login
      *
-     * @return void
+     * @return bool
      */
     protected function login()
     {

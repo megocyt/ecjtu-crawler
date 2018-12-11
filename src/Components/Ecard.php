@@ -88,7 +88,7 @@ class Ecard implements EcardInterface
     /**
      * Today's trade
      *
-     * @return void
+     * @return array
      */
     public function trade()
     {
@@ -152,7 +152,7 @@ class Ecard implements EcardInterface
      *
      * @param string $start_date
      * @param string $end_date
-     * @return void
+     * @return array
      */
     public function trades(string $start_date='', string $end_date='')
     {
@@ -295,7 +295,7 @@ class Ecard implements EcardInterface
      *
      * @param string $username
      * @param string $password
-     * @return void
+     * @return bool
      */
     public static function check_password($username='', $password='')
     {
@@ -337,7 +337,7 @@ class Ecard implements EcardInterface
     /**
      * login
      *
-     * @return void
+     * @return bool
      */
     protected function login()
     {

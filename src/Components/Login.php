@@ -49,7 +49,7 @@ class Login implements LoginInterface
      *
      * @var integer
      */
-    protected $cache_expire = 1800;
+    protected $cache_expire = 600;
     /**
      * form data
      *
@@ -93,7 +93,7 @@ class Login implements LoginInterface
      * session id
      *
      * @param string $session
-     * @return void
+     * @return string
      */
     public function session_id(string $session_id = '')
     {
@@ -106,13 +106,30 @@ class Login implements LoginInterface
                 return $this->session_id;
             }
 
-            if (!$this->cacheHandler->has($this->cache_key)) {
+            if (! $this->cacheHandler->has($this->cache_key)) {
                 return null;
             }
             return $this->cacheHandler->get($this->cache_key);
         } else {
             $this->cacheHandler->set($this->cache_key, $session_id, $this->cache_expire);
         }
+    }
+    /**
+     * clear cache
+     *
+     * @return true
+     */
+    public function clear()
+    {
+        $cache_key = $this->cache_key ? : $this->hash();
+
+        if (! $this->cacheHandler->has($cache_key)) {
+            return true;
+        } else {
+            $this->cacheHandler->delete($cache_key);
+        }
+
+        return true;
     }
     /**
      * Hash key
