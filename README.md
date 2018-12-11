@@ -1,5 +1,5 @@
 
-Ecjtu Crawler 是帮助开发者获取Ecjtu教务等信息，包含（教务、选课、一卡通等）
+Ecjtu Crawler 快速获取教务信息
 
 - 简单的获取信息接口
   score,daily,classmate,schedule,exam,experiment,trade,trades,course...
@@ -8,12 +8,8 @@ Ecjtu Crawler 是帮助开发者获取Ecjtu教务等信息，包含（教务、�
 $EcjtuManager = new \Megoc\Ecjtu\EcjtuManager([
     'username'       => 'student_id',
     'jwxt_password'  => 'education password',
-    'ecard_password' => 'ecard password'
 ]);
 
-// 一卡通当日消费
-$trade = $EcjtuManager->getEcard()->trade();
-var_dump($trade);
 // 获取2018.1学期的成绩
 $score = $EcjtuManager->getEducation()->score('2018.1');
 var_dump($score);
