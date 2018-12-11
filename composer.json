@@ -1,6 +1,6 @@
 {
     "name": "megoc/ecjtu-crawler",
-    "description": "Ecjtu school information crawler,make it easy to get you wanted thing",
+    "description": "Ecjtu school information crawler",
     "type": "library",
     "license": "MIT",
     "keywords": ["megoc", "ecjtu crawler"],
