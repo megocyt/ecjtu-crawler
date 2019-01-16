@@ -16,27 +16,26 @@ class EcjtuManager
     /**
      * user information
      *
-     * @var [type]
+     * @var array
      */
     protected $user;
-
 
     public function __construct($user = [])
     {
         $this->user = $user;
     }
-    
+
     /**
-     * 获取Ecard 对象
+     * Ecard
      *
-     * @return Object Ecard
+     * @return \Megoc\Ecjtu\Components\Ecard
      */
     public function getEcard()
     {
         if (empty($this->user['username']) || empty($this->user['ecard_password'])) {
-            return ;
+            throw new \Exception("Ecard manager system login information is needed!", 1);
         }
-        
+
         $this->Ecard = new Ecard([
             'username' => $this->user['username'],
             'password' => $this->user['ecard_password'],
@@ -44,16 +43,15 @@ class EcjtuManager
 
         return $this->Ecard;
     }
-
     /**
-     * 获取教务系统对象
+     * Education 
      *
-     * @return Object Education
+     * @return \Megoc\Ecjtu\Components\Education
      */
     public function getEducation()
     {
         if (empty($this->user['username']) || empty($this->user['jwxt_password'])) {
-            return ;
+            throw new \Exception("Education manager system login information is needed!", 1);
         }
 
         $this->Education = new Education([
@@ -63,24 +61,41 @@ class EcjtuManager
 
         return $this->Education;
     }
-
     /**
-     * 获取选课系统对象
+     * Elective
      *
-     * @return Object Elective
+     * @return \Megoc\Ecjtu\Components\Elective
      */
     public function getElective()
     {
         if (empty($this->user['username']) || empty($this->user['jwxt_password'])) {
-            return ;
+            throw new \Exception("Education manager system login information is needed!", 1);
         }
 
         $this->Elective = new Elective([
             'username' => $this->user['username'],
             'password' => $this->user['jwxt_password'],
         ]);
-        
+
         return $this->Elective;
+    }
+    /**
+     * Portal
+     *
+     * @return \Megoc\Ecjtu\Components\Portal
+     */
+    public function getPortal()
+    {
+        if (empty($this->user['username']) || empty($this->user['password'])) {
+            throw new \Exception("Portal system login information is needed!", 1);
+        }
+
+        $this->Portal = new Portal([
+            'username' => $this->user['username'],
+            'password' => $this->user['password'],
+        ]);
+
+        return $this->Portal;
     }
     /**
      * check education manager system account info
@@ -89,7 +104,7 @@ class EcjtuManager
      * @param string $password
      * @return void
      */
-    public static function check_education_password($username='', $password='')
+    public static function check_education_password($username = '', $password = '')
     {
         return Education::ckeck_password($username, $password);
     }
@@ -100,7 +115,7 @@ class EcjtuManager
      * @param string $password
      * @return void
      */
-    public static function check_ecard_password($username='', $password='')
+    public static function check_ecard_password($username = '', $password = '')
     {
         return Ecard::check_password($username, $password);
     }
