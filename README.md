@@ -1,13 +1,12 @@
-
-Ecjtu Crawler 快速获取教务信息
+Ecjtu Crawler
 
 - 简单的获取信息接口
   score,daily,classmate,schedule,exam,experiment,trade,trades,course...
 
-```php
+````php
 $EcjtuManager = new \Megoc\Ecjtu\EcjtuManager([
     'username'       => 'student_id',
-    'jwxt_password'  => 'education password',
+    'jwxt_password'  => 'education manager system password',
 ]);
 
 // 获取2018.1学期的成绩
@@ -26,7 +25,7 @@ The recommended way to install Ecjtu Crawler is through
 ```bash
 # Install Composer
 curl -sS https://getcomposer.org/installer | php
-```
+````
 
 Next, run the Composer command to install the latest stable version of Ecjtu Crawler:
 
@@ -42,6 +41,6 @@ require 'vendor/autoload.php';
 
 You can then later update Ecjtu Crawler using composer:
 
- ```bash
+```bash
 composer.phar update
- ```
+```

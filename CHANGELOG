@@ -1,3 +1,9 @@
+2019/1/13
+1.新增智慧交大、图书馆信息获取组件
+2.智慧交大组件支持8个方法，通知列表（notifications）、通知详细信息（notification_detail）、失物招领（lost_notifications）、用户资料（profile）、教务系统、选课系统、图书馆cas认证链接获取（education_cas_link、elective_cas_link、library_cas_link）、任意智慧交大服务cas认证链接获取（cas_authority）。
+3.图书馆组件支持3个方法，历史记录（history）、用户资料（profile）、cas认证登录（cas_authority）
+
+2019/1/1 前
 注释函数增加返回类型声明
 Education类的基地址改成静态常量获取的方式
 Login类增加clear方法，用以清除指定键值所对应的内容
