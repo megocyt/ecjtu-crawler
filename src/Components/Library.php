@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-12 18:08:06 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-12 19:02:33
+ * @Last Modified time: 2019-01-17 15:43:11
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -167,13 +167,18 @@ class Library implements LibraryInterface
     /**
      * through cas authority id 
      *
-     * @param string $cas_link
      * @param string $key
+     * @param string $cas_link
      * @return void
      */
-    public function cas_authority($cas_link = '', $key = '')
+    public function cas_authority($key, $cas_link = '')
     {
+        if (!$key) {
+            throw new \Exception("uninque id is needed!", 1);
+        }
+
         if (!$cas_link) {
+            $this->init_client_handler($key);
             return;
         }
 
