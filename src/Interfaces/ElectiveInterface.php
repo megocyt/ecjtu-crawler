@@ -6,40 +6,47 @@ namespace Megoc\Ecjtu\Interfaces;
  * Author: Megoc <megoc@megoc.org>
  * Date: 2018/07/22
  */
-interface ElectiveInterface {
+interface ElectiveInterface
+{
     /**
      * Course Query
      *
      * @param string $term
-     * @return void
+     * @return array
      */
-    public function course(string $term='');
+    public function course(string $term = '');
     /**
      * Profile Query
      *
-     * @return void
+     * @return array
      */
     public function profile();
     /**
      * Public couser list
      *
-     * @return void
+     * @return array
      */
-    public function publicCourseList();
+    public function public_course_list();
     /**
      * Get teacher's resume
      *
      * @param string $teacher_task_id
-     * @return void
+     * @return array
      */
-    public function teacherResume(string $teacher_task_id='');
+    public function teacher_resume(string $teacher_task_id = '');
     /**
-     * Get teacher's photo
+     * select state
      *
-     * @param string $teacher_id
-     * @param boolean $echo_string
+     * @return array
+     */
+    public function course_select_info();
+    /**
+     * cas authoriy
+     *
+     * @param string $uid
+     * @param string $cas_link
      * @return void
      */
-    public function teacherPhoto(string $teacher_id='', $echo_string=true);
-    
+    public function cas_authority(string $uid, string $cas_link);
+
 }

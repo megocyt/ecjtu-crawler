@@ -1,47 +1,78 @@
 <?php
+/*
+ * @Author: Megoc 
+ * @Date: 2019-01-17 09:37:42 
+ * @Last Modified by: Megoc
+ * @Last Modified time: 2019-01-17 15:11:34
+ * @E-mail: megoc@megoc.org 
+ * @Description: create by vscode 
+ */
+
 namespace Megoc\Ecjtu\Components;
 
 use Megoc\Ecjtu\Interfaces\ElectiveInterface;
-use Megoc\Ecjtu\Components\Login;
 use GuzzleHttp\Client;
+use Symfony\Component\Cache\Simple\FilesystemCache;
+use GuzzleHttp\Cookie\CookieJar;
+use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
 use Symfony\Component\DomCrawler\Crawler;
-use Overtrue\Pinyin\Pinyin;
-use function GuzzleHttp\json_decode;
+use GuzzleHttp\Exception\RequestException;
+use GuzzleHttp\Exception\ServerException;
 
-/**
- * Elective
- * Author: Megoc <megoc@megoc.org>
- * Date: 2018/07/22
- */
 class Elective implements ElectiveInterface
 {
-    protected $baseUrl = 'http://xkxt.ecjtu.edu.cn/';
-    protected $username;
-    protected $password;
-    protected $clientHandler;
+    /**
+     * server base uri
+     */
+    const BASE_URI = 'http://xkxt.ecjtu.edu.cn/';
+    /**
+     * username
+     *
+     * @var string
+     */
+    protected $username = '';
+    /**
+     * password
+     *
+     * @var string
+     */
+    protected $password = '';
+    /**
+     * uid
+     *
+     * @var string
+     */
+    protected $uid = '';
+    /**
+     * none state client
+     *
+     * @var \GuzzleHttp\Client
+     */
+    protected $a_client;
+    /**
+     * authoritied client
+     *
+     * @var \GuzzleHttp\Client
+     */
+    protected $auth_client;
 
     /**
-     * User
+     * construct
      *
-     * @var [type]
+     * @param array $user
      */
-    protected $user;
-    
-
-    public function __construct(array $user)
+    public function __construct(array $user = [])
     {
-        $this->set_user($user);
-        $this->clientHandler = new Client([
-            'base_uri' => $this->baseUrl,
-            'timeout'  => 5,
-            'headers' => [
-                'Cookie' => $this->login(),
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-            ],
-        ]);
+        $this->init_http_client_handler();
+
+        if (!empty($user['username']) && !empty($user['password'])) {
+            $this->set_user($user);
+            $this->uid();
+            $this->login();
+        }
     }
     /**
-     * Get selected course
+     * course list
      *
      * @param string $term
      * @return array
@@ -50,311 +81,408 @@ class Elective implements ElectiveInterface
     {
         $uri = $term ? 'common/common_getSelectedCourses.action?term=' . $term : 'common/common_selectedCourse.action';
 
-        $response = $this->clientHandler->get($uri);
-        $html     = $response->getBody()->getContents();
-        $crawler  = new Crawler($html);
+        $response = $this->auth_client->get($uri);
+        $html = $response->getBody()->getContents();
+        $html = preg_replace('/\s{2,}|\n*/is', '', $html);
+        $crawler = new Crawler($html);
 
         $courses = [];
-        $title   = [];
-        $pinyin  = new Pinyin();
+        $title = ['xueqi', 'select_type', 'class_name', 'course', 'require', 'check_type', 'period', 'credit', 'class_span', 'teacher_name', 'course_type', 'course_plan', 'capacity', 'selected_number', 'action'];
 
-        $crawler->filter('tr th')->each(function (Crawler $node, $i) use (&$title, &$pinyin)
-        {
-            $title[$i] = join( '', $pinyin->convert( trim( $node->text() ) ) );
-        });
-
-        $crawler->filter('tr')->each(function (Crawler $node, $i) use (&$courses, &$title, &$pinyin)
-        {
-            if ($i == 0) return ;
+        $crawler->filter('table#course-data tr')->each(function (Crawler $node, $i) use (&$courses, &$title, &$term) {
+            if ($i == 0) return;
 
             $course = [];
-
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$course, &$title, &$pinyin)
-            {
+            $node->filter('td')->each(function (Crawler $node, $i) use (&$course, &$title, &$term) {
                 $course[$title[$i]] = trim($node->text());
-            });
-            unset($course[$title[count($title) - 1]]);
-            $courses[] = $course;
-        });
 
-        return $courses;
-    }
-    /**
-     * Public course list
-     *
-     * @return array
-     */
-    public function publicCourseList()
-    {
-        $uri = 'commonXK/commonXK_getCoureTeachTask.action';
-
-        $response = $this->clientHandler->get($uri);
-        $html     = $response->getBody()->getContents();
-        $crawler  = new Crawler($html);
-
-        $courses       = [];
-        $title         = [];
-        $pinyin        = new Pinyin();
-        $teach_task_id = [];
-        /**
-         * get total page
-         */
-        preg_match('/<input id="pageTotal" type="hidden" value="(\d*)".*>/iUs', $html, $pages);
-
-        if (!empty($pages)) {
-            $page = $pages[1];
-        }
-        /**
-         * get title info
-         */
-        $crawler->filter('tr th')->each(function (Crawler $node, $i) use (&$title, &$pinyin)
-        {
-            $title[$i] = join( '', $pinyin->convert( trim( $node->text() ) ) );
-        });
-
-        $crawler->filter('tr')->each(function (Crawler $node, $i) use (&$courses, &$title, &$pinyin)
-        {
-            if ($i == 0) return ;
-
-            $course = [];
-
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$course, &$title, &$pinyin)
-            {
-                if ($i == 8) {
-                    preg_match('/teachTaskId=(\d+)/is', $node->html(), $matchs);
-
-                    if (!empty($matchs)) {
-                        $course['teachtaskid'] = $matchs[1];
-                    } else {
-                        $course['teachtaskid'] = '';
-                    }
+                if ($i == 9) {
+                    $href = $node->filter('a')->attr('href');
+                    preg_match('/teachTaskId=(.*)/is', $href, $matches);
+                    $teacher_task_id = $matches[1];
+                    $course['teacher_task_id'] = $teacher_task_id;
                 }
-
-                $course[$title[$i]] = trim($node->text());
             });
 
-            unset($course[$title[count($title) - 1]]);
+            $term = $course['xueqi'];
+            unset($course['xueqi']);
+            ksort($course);
             $courses[] = $course;
         });
-        /**
-         * get all course 
-         */
-        for ($i=1; $i < $page; $i++) {
-            $response = $this->clientHandler->get('commonXK/commonXK_getCoureTeachTask.action?currentPage=' . ($i+1));
-            $html     = $response->getBody()->getContents();
-            $crawler  = new Crawler($html);
 
-            $crawler->filter('tr')->each(function (Crawler $node, $i) use (&$courses, &$title, &$pinyin)
-            {
-                if ($i == 0) return ;
-
-                $course = [];
-
-                $node->filter('td')->each(function (Crawler $node, $i) use (&$course, &$title, &$pinyin)
-                {
-                    if ($i == 8) {
-                        preg_match('/teachTaskId=(\d+)/is', $node->html(), $matchs);
-
-                        if (!empty($matchs)) {
-                            $course['teachtaskid'] = $matchs[1];
-                        } else {
-                            $course['teachtaskid'] = $matchs[1];
-                        }
-                    }
-
-                    $course[$title[$i]] = trim($node->text());
-                });
-                unset($course[$title[count($title) - 1]]);
-                $courses[] = $course;
-            });
-        }
-        /**
-         * get task id array
-         */
-        foreach ($courses as $key => $value) {
-            $teach_task_id[$key] = $value['teachtaskid'];
-        }
-        /**
-         * get select number
-         */
-        $response = $this->clientHandler->post('commonXK/commonXK_getSelCourseNum.action', [
-            'form_params' => [
-                'teachTaskIDs' => join(',', $teach_task_id)
-            ]
-        ]);
-        $html    = $response->getBody()->getContents();
-        $jsonArr = json_decode($html, true);
-
-        foreach ($courses as $key => $value) {
-            $courses[$key]['yixuanrenshu'] = $jsonArr[$key]['selStuNum'];
-        }
-        
-        unset($pinyin);
-        return $courses;
+        return [
+            'term' => $term,
+            'lists' => $courses
+        ];
     }
     /**
-     * Get teacher's resume
-     *
-     * @param string $teacher_task_id
-     * @return array
-     */
-    public function teacherResume(string $teacher_task_id = '')
-    {
-        if (!$teacher_task_id) {
-            return [];
-        }
-
-        $uri = 'Resume/Resume_iniEditResume.action?teachTaskId=' . $teacher_task_id;
-        $response = $this->clientHandler->get($uri);
-        $html     = $response->getBody()->getContents();
-        $crawler  = new Crawler($html);
-
-        $resume = [];
-        $title  = [];
-        $pinyin = new Pinyin();
-
-        try {
-            $nopass = $crawler->filter('.not-pass')->html();
-            return [];
-        } catch (\Exception $e) {}
-
-        try {
-            $empty_con = trim($crawler->filter('.query-con')->text());
-            
-            if (!$empty_con) {
-                return [];
-            }
-        } catch (\Exception $e) {}
-
-        /**
-         * get title info
-         */
-        $crawler->filter('tr td.k')->each(function (Crawler $node, $i) use (&$title, &$pinyin)
-        {
-            $title[$i] = join( '', $pinyin->convert( trim( $node->text() ) ) );
-        });
-
-        $crawler->filter('tr td.v')->each(function (Crawler $node, $i) use (&$resume, &$title)
-        {
-            $resume[$title[$i]] = trim($node->text());
-        });
-        /**
-         * get description
-         */
-        $crawler->filter('div.cv-item div.items')->each(function (Crawler $node, $i) use (&$resume, &$title)
-        {
-            $text = str_replace('    ', '', $node->text());
-            if ($i == 0) {
-                $resume['jiaoxueqingkuang'] = trim($text);
-            } else {
-                $resume['keyanqingkuang'] = trim($text);
-            }
-        });
-
-        /**
-         * get name's pinyin
-         */
-        $resume['xingmingpinyin'] = join( '', $pinyin->convert( $resume['xingming'] ) );
-
-        /**
-         * get photo id
-         */
-        $teacher_id_string = trim($crawler->filter('.head-img-edit')->html());
-        preg_match('/teacherID=(\d*)"/is', $teacher_id_string, $matchs);
-        if (!empty($matchs)) {
-            $resume['zhaopianbianhao'] = $matchs[1];
-        } else {
-            $resume['zhaopianbianhao'] = '';
-        }
-
-        return $resume;
-    }
-    /**
-     * Get teacher's photo
-     *
-     * @param string $teacher_id
-     * @param boolean $echo_string
-     * @return string
-     */
-    public function teacherPhoto(string $teacher_id = '', $echo_string = true)
-    {
-        if (empty($teacher_id)) {
-            return base64_encode(null);
-        }
-
-        $uri      = 'Resume/Resume_readPhoto.action?teacherID=' . $teacher_id;
-        $response = $this->clientHandler->get($uri);
-        $html     = $response->getBody()->getContents();
-
-        return base64_encode($html);
-    }
-    /**
-     * Profile
+     * profile
      *
      * @return array
      */
     public function profile()
     {
-        $response = $this->clientHandler->get('index/index_getPersonalInfo.action');
-        $html     = $response->getBody()->getContents();
-        $crawler  = new Crawler($html);
-
+        $response = $this->auth_client->get('index/index_getPersonalInfo.action');
+        $html = $response->getBody()->getContents();
+        $crawler = new Crawler($html);
         $profile = [];
-        $pinyin  = new Pinyin();
+        $title = ['name', 'sex', 'student_id', 'class_name', 'class_id', 'campus', 'rotc', 'english_level', 'study_warning', 'study_status', 'minor_degree_class_id', 'current_term', 'minor_degree_class_name', 'course_select_term', ];
 
-        $crawler->filter('tr')->each(function (Crawler $node, $i) use (&$profile, &$pinyin)
-        {
-            $title = '';
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$profile, &$title, &$pinyin)
-            {
-                if ($i % 2 == 0) {
-                    $title = join( '', $pinyin->convert( trim( $node->text() ) ) );
-                    return ;
-                } else {
-                    $profile[$title] = trim($node->text());
+        $crawler->filter('table#infoTable tr')->each(function (Crawler $node, $i) use (&$profile, $title) {
+            $node->filter('td')->each(function (Crawler $node, $j) use (&$profile, $title, $i) {
+                if ($j == 1) {
+                    $profile[$title[$i * 2]] = trim($node->text());
+                    return;
+                }
+                if ($j == 3) {
+                    $profile[$title[$i * 2 + 1]] = trim($node->text());
+                    return;
                 }
             });
         });
 
-        unset($pinyin);
+        if ($profile['student_id'] == '2015031002000422') {
+            $profile['sex'] = '女';
+        }
+
+        $profile['sex'] = $profile['sex'] == '女' ? 2 : 1;
+        ksort($profile);
 
         return $profile;
     }
     /**
-     * login
+     * public course list
      *
-     * @return bool
+     * @param string $page
+     * @return array
      */
-    protected function login()
+    public function public_course_list($page = '')
     {
-        if (empty($this->username) || empty($this->password)) {
-            return '';
+        $uri = 'commonXK/commonXK_getCoureTeachTask.action?currentPage=' . $page;
+
+        try {
+            $response = $this->auth_client->get($uri);
+            $html = $response->getBody()->getContents();
+        } catch (ServerException $e) {
+            $this->auth_client->get('xkNotice_getXKNoticeInfo.action?xkSelectType=4&eduType=1');
+            $response = $this->auth_client->get($uri);
+            $html = $response->getBody()->getContents();
         }
 
-        $LoginHandler = new Login;
+        $crawler = new Crawler($html);
+        $courses = [];
+        $title = ['xueqi', 'class_name', 'course', 'course_category', 'check_type', 'period', 'credit', 'class_span', 'teacher_name', 'capacity', 'selected_number', 'action'];
+        $current_page = $crawler->filter('input#pageCurrent')->attr('value');
+        $total_page = $crawler->filter('input#pageTotal')->attr('value');
 
-        $login = $LoginHandler->verifyCode($this->baseUrl . 'servlet/code.servlet')->form([
-            'username'       => $this->username,
-            'password'       => $this->password,
-            'verifyCodeName' => 'code',
-        ])->login($this->baseUrl . 'login/login_checkout.action');
+        $crawler->filter('table#course-data tr')->each(function (Crawler $node, $i) use (&$courses, &$title, &$term) {
+            if ($i == 0) return;
 
-        return $login;
+            $course = [];
+            $node->filter('td')->each(function (Crawler $node, $i) use (&$course, &$title, &$term) {
+                $course[$title[$i]] = trim($node->text());
+
+                if ($i == 1) {
+                    $course['teacher_task_id'] = $node->filter('input')->attr('value');
+                }
+                if ($i == 2) {
+                    $course['course_id'] = $node->filter('input')->attr('value');
+                }
+            });
+
+            $term = $course['xueqi'];
+            unset($course['xueqi']);
+            ksort($course);
+            $courses[] = $course;
+        });
+
+        $task_ids = [];
+
+        foreach ($courses as $value) {
+            $task_ids[] = $value['teacher_task_id'];
+        }
+
+        if (!empty($task_ids)) {
+            $response = $this->auth_client->post('commonXK/commonXK_getSelCourseNum.action', [
+                'form_params' => [
+                    'teachTaskIDs' => join(',', $task_ids),
+                ]
+            ]);
+            $html = $response->getBody()->getContents();
+            $jsonArr = json_decode($html, true);
+            foreach ($jsonArr as $key => $value) {
+                $courses[$key]['selected_number'] = $value['selStuNum'];
+            }
+        }
+
+        return [
+            'term' => $term,
+            'total_page' => $total_page,
+            'current_page' => $current_page,
+            'list_size' => count($courses),
+            'lists' => $courses
+        ];
     }
     /**
-     * Set User Login information
+     * teacher resume
+     *
+     * @param string $teacher_id
+     * @return array
+     */
+    public function teacher_resume(string $teacher_id = '')
+    {
+        if (!$teacher_id) {
+            return [];
+        }
+
+        $response = $this->auth_client->get('Resume/Resume_iniEditResume.action?teachTaskId=' . $teacher_id);
+        $html = $response->getBody()->getContents();
+
+        if (preg_match('/教师个人简介暂未审核，无法查看！/is', $html)) {
+            return [];
+        }
+
+        $crawler = new Crawler($html);
+        $resume = [];
+        $title = ['name', 'sex', 'nation', 'native_place', 'birth_day', 'belong_unit', 'party', 'technical_title', 'highest_education', 'highest_degree', 'position', 'admission_date', ];
+        $avatar_img_url = $crawler->filter('img.head-img')->attr('src');
+        $crawler->filter('td.v')->each(function (Crawler $node, $i) use (&$resume, $title) {
+            $resume[$title[$i]] = $node->text();
+        });
+        $crawler->filter('div.cv-item')->each(function (Crawler $node, $i) use (&$resume, $title) {
+            if ($i == 1) {
+                $string = trim($node->html());
+                $string = preg_replace('/\s{2,}|\n*/is', '', $string);
+                $resume['teaching_situation'] = $string;
+            }
+            if ($i == 2) {
+                $string = trim($node->html());
+                $string = preg_replace('/\s{2,}|\n*/is', '', $string);
+                $resume['scientific'] = $string;
+            }
+        });
+        $phote_response = $this->auth_client->get($avatar_img_url);
+        $resume['photo'] = base64_encode($phote_response->getBody()->getContents());
+        ksort($resume);
+
+        return $resume;
+    }
+    /**
+     * select state
+     *
+     * @return array
+     */
+    public function course_select_info()
+    {
+        $response = $this->auth_client->post('index/index_getXKIndexInfo.action', [
+            'headers' => [
+                'X-Requested-With' => 'XMLHttpRequest',
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/71.0.3578.98 Safari/537.36'
+            ]
+        ]);
+        $html = $response->getBody()->getContents();
+        $jsonArr = json_decode($html, true);
+
+        if (empty($jsonArr)) {
+            return [];
+        }
+
+        $t = array_shift($jsonArr);
+        $info = [];
+
+        foreach ($t['listSelCourDate'] as $key => $value) {
+            $info['course_select_open_list'][] = [
+                'course_select_type' => $value['courseSelectType'],
+                'open_date' => $value['startDate'],
+                'close_date' => $value['endDate'],
+                'term' => $value['term'],
+                'select_past_day' => $value['pastSelCourDay'],
+                'select_span_day' => $value['selCourseDay']
+            ];
+        }
+
+        $info['course_select_state'] = [
+            'obligatory_total' => $t['listSelCourState'][0]['biXuanAllNum'],
+            'obligatory_undone' => $t['listSelCourState'][0]['biXuanWeiXuan'],
+            'obligatory_done' => $t['listSelCourState'][0]['biXuanYiXuan'],
+            'common_total' => $t['listSelCourState'][0]['commonSelectedNum'],
+            'minor_total' => $t['listSelCourState'][0]['fxYingXuanAllNum'],
+            'minor_done' => $t['listSelCourState'][0]['fxYingXuanYiXuan'],
+            'optional_total' => $t['listSelCourState'][0]['keXuanAllNum'],
+            'optional_done' => $t['listSelCourState'][0]['keXuanYiXuan'],
+            'term' => $t['listSelCourState'][0]['term'],
+        ];
+
+        return $info;
+    }
+
+    /**
+     * login
      *
      * @param array $user
-     * @return bool
+     * @return void
+     */
+    public function login(array $user = [])
+    {
+        if (empty($user['username']) || empty($user['password'])) {
+            if (!$this->username || !$this->password) {
+                throw new \Exception("Username or password is needed to login system!", -1);
+            }
+        } else {
+            $this->set_user($user);
+        }
+
+        $cache_handler = new FilesystemCache('xkxt.ecjtu.jx.cn');
+
+        if ($cache_handler->has($this->uid())) {
+            $this->init_http_client_handler($this->uid());
+            return;
+        }
+
+        /**
+         * get captcha image stream and code
+         */
+        $response = $this->a_client->get(self::BASE_URI . 'servlet/code.servlet');
+        $captcha_image = $response->getBody()->getContents();
+        $captcha_ocr = new EcjtuOCR($captcha_image);
+        $captcha_code = $captcha_ocr->result();
+        $cookies = $response->getHeader('Set-Cookie');
+        $cookies_string = join(' ', $cookies);
+        $cookies_string = preg_replace('/path=.*; HttpOnly/is', '', $cookies_string);
+        /**
+         * send login request
+         */
+        $response = $this->a_client->post('login/login_checkout.action', [
+            'form_params' => [
+                'username' => $this->username,
+                'password' => $this->password,
+                'code' => $captcha_code,
+            ],
+            'headers' => [
+                'Cookie' => $cookies_string,
+            ],
+            'allow_redirects' => false
+        ]);
+
+        $html = $response->getBody()->getContents();
+        $locations = $response->getHeader('Location');
+
+        if (!empty($locations)) {
+            list($location) = $locations;
+
+            $response = $this->a_client->get($location, [
+                'headers' => [
+                    'Cookie' => $cookies_string
+                ]
+            ]);
+
+            $html = $response->getBody()->getContents();
+            /**
+             * test login result
+             */
+            if (!preg_match('/如何才能使用微信扫一扫登录/is', $html)) {
+                $cache_handler->set($this->uid(), $cookies_string, 900);
+                $this->init_http_client_handler($this->uid());
+
+                return;
+            }
+        }
+
+        if (preg_match('/用户名或密码错误/is', $html)) {
+            throw new \Exception("Username or password is incorrected!", -4);
+        }
+
+        /**
+         * if is captcha error, attempt more
+         */
+        if (preg_match('/验证码错误/is', $html)) {
+            static $loop_times = 0;
+            $loop_times++;
+
+            if ($loop_times < 3) {
+                $this->login();
+            } else {
+                throw new \Exception("captcha recognition error, we had attempt $loop_times times, Please check program...", -8);
+            }
+        }
+    }
+
+    public function cas_authority(string $uid, $cas_link)
+    {
+        if (!$uid) {
+            throw new \Exception("Uninque id is needed!", 1);
+        }
+    }
+
+    /**
+     * init http client
+     *
+     * @param string $uid
+     * @return void
+     */
+    protected function init_http_client_handler($uid = '')
+    {
+        $this->a_client = new Client([
+            'base_uri' => self::BASE_URI,
+            'timeout' => 5,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+            ]
+        ]);
+
+        if (!$uid) {
+            return;
+        }
+
+        $cache_handler = new FilesystemCache('xkxt.ecjtu.jx.cn');
+
+        if ($cache_handler->has($uid)) {
+            $this->auth_client = new Client([
+                'base_uri' => self::BASE_URI,
+                'timeout' => 5,
+                'headers' => [
+                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+                    'Cookie' => $cache_handler->get($uid),
+                ]
+            ]);
+        } else {
+            throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
+        }
+    }
+    /**
+     * generate uid
+     *
+     * @return string
+     */
+    protected function uid($uid = '')
+    {
+        if ($uid) {
+            $this->uid = $uid;
+        } else {
+            if (empty($this->username) || empty($this->password)) {
+                throw new \Exception("Can not generate uid, cause by username or password is null!", -3);
+            }
+
+            $this->uid = md5(sha1($this->username . $this->password));
+        }
+
+        $this->init_http_client_handler($uid);
+
+        return $this->uid;
+    }
+    /**
+     * set user form
+     *
+     * @param array $user
+     * @return void
      */
     protected function set_user(array $user)
     {
-        if ( empty($user) || empty($user['username']) || empty($user['password']) ) {
-            return false;
+        if (empty($user) || empty($user['username']) || empty($user['password'])) {
+            return;
         }
 
         $this->username = $user['username'];
         $this->password = $user['password'];
-        return false;
-    }    
+    }
 }
