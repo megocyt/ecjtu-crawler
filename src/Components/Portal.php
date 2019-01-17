@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-12 11:56:19 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-12 18:23:12
+ * @Last Modified time: 2019-01-17 15:42:05
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -104,7 +104,7 @@ class Portal implements ProtalInterface
         $html = $response->getBody()->getContents();
 
         try {
-            $jsonArr = \json_decode($html, true);
+            $jsonArr = json_decode($html, true);
 
             if (empty($jsonArr['list'])) {
                 return [];
@@ -139,7 +139,7 @@ class Portal implements ProtalInterface
                 'lists' => $list,
             ];
         } catch (\Exception $e) {
-            return;
+            return [];
         }
     }
     /**
@@ -151,7 +151,7 @@ class Portal implements ProtalInterface
     public function notification_detail($resource_id = '')
     {
         if (!$resource_id) {
-            return '';
+            return [];
         }
 
         $response = $this->auth_dcp_client->post('dcp/pim/pim.action', [
@@ -211,7 +211,7 @@ class Portal implements ProtalInterface
 
             return $info;
         } catch (\Exception $e) {
-            return null;
+            return [];
         }
     }
 
@@ -266,7 +266,7 @@ class Portal implements ProtalInterface
                 'lists' => $list,
             ];
         } catch (\Exception $e) {
-            return null;
+            return [];
         }
     }
     /**
@@ -313,8 +313,17 @@ class Portal implements ProtalInterface
                 'id_type_name' => $list['ID_TYPE_NAME'],
             ];
         } catch (\Exception $e) {
-            return null;
+            return [];
         }
+    }
+    /**
+     * portal cas link
+     *
+     * @return string
+     */
+    public function portal_cas_link()
+    {
+        return $this->cas_authority_link($this->get_service_by_name('portal'));
     }
     /**
      * education system cas link
@@ -323,7 +332,7 @@ class Portal implements ProtalInterface
      */
     public function education_cas_link()
     {
-        return $this->cas_authority($this->get_service_by_name('education'));
+        return $this->cas_authority_link($this->get_service_by_name('education'));
     }
     /**
      * elective system cas link
@@ -332,7 +341,7 @@ class Portal implements ProtalInterface
      */
     public function elective_cas_link()
     {
-        return $this->cas_authority($this->get_service_by_name('elective'));
+        return $this->cas_authority_link($this->get_service_by_name('elective'));
     }
     /**
      * library system cas link
@@ -341,7 +350,7 @@ class Portal implements ProtalInterface
      */
     public function library_cas_link()
     {
-        return $this->cas_authority($this->get_service_by_name('library'));
+        return $this->cas_authority_link($this->get_service_by_name('library'));
     }
 
     /**
@@ -350,7 +359,7 @@ class Portal implements ProtalInterface
      * @param string $service
      * @return string
      */
-    public function cas_authority($service_cas_url = '')
+    public function cas_authority_link($service_cas_url = '')
     {
         $cache_handler = new FilesystemCache('cas.ecjtu.edu.cn.cas');
 
@@ -405,6 +414,16 @@ class Portal implements ProtalInterface
         return $cas_link;
     }
     /**
+     * uid
+     *
+     * @return string
+     */
+    public function uid()
+    {
+        $this->uid = md5(sha1($this->username . $this->password));
+        return $this->uid;
+    }
+    /**
      * portal data
      *
      * @return void
@@ -435,13 +454,12 @@ class Portal implements ProtalInterface
     protected function dcp_home_session_id()
     {
         $cache_handler = new FilesystemCache('portal.ecjtu.edu.cn.dcp');
-        // $cache_handler->clear();
 
         if ($cache_handler->has($this->cache_key)) {
             return $cache_handler->get($this->cache_key);
         }
 
-        $cas_link = $this->cas_authority('http://portal.ecjtu.edu.cn/dcp/index.jsp');
+        $cas_link = $this->cas_authority_link('http://portal.ecjtu.edu.cn/dcp/index.jsp');
         $response = $this->a_client->get($cas_link);
         $cookies = $response->getHeader('Set-Cookie');
         $html = $response->getBody()->getContents();
@@ -543,9 +561,10 @@ class Portal implements ProtalInterface
         }
 
         $services = [
-            'library' => 'http://lib1.ecjtu.jx.cn/goldwsdl/login.aspx',
             'education' => 'http://jwxt.ecjtu.jx.cn/stuMag/Login_dcpLogin.action',
             'elective' => 'http://xkxt.ecjtu.jx.cn/login/login_dcpLogin.action',
+            'library' => 'http://lib1.ecjtu.jx.cn/goldwsdl/login.aspx',
+            'portal' => 'http://portal.ecjtu.edu.cn/dcp/index.jsp',
         ];
 
         return empty($services[$service_name]) ? null : $services[$service_name];

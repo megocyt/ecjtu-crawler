@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-12 11:58:00 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-12 11:58:35
+ * @Last Modified time: 2019-01-17 15:18:44
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -42,6 +42,12 @@ interface ProtalInterface
      */
     public function profile();
     /**
+     * portal manager system cas link url
+     *
+     * @return string
+     */
+    public function portal_cas_link();
+    /**
      * education manager system cas link url
      *
      * @return string
@@ -65,6 +71,6 @@ interface ProtalInterface
      * @param string $service_cas_url
      * @return string
      */
-    public function cas_authority($service_cas_url = '');
+    public function cas_authority_link($service_cas_url = '');
 
 }
