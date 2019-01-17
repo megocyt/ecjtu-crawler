@@ -1,3 +1,10 @@
+2019/17
+1.重写Education、Elective组件，组件风格统一、增加cas认证方法
+2.重写Elective接口方法名称，统一命名方式
+3.修改数组返回类型方法在异常参数情况下的返回值，保持结果类型统一
+4.修复已知问题
+注意：此版接口变化较大，不能直接从旧版直接升级，需要修改代码后才能正常运行
+
 2019/1/13
 1.新增智慧交大、图书馆信息获取组件
 2.智慧交大组件支持8个方法，通知列表（notifications）、通知详细信息（notification_detail）、失物招领（lost_notifications）、用户资料（profile）、教务系统、选课系统、图书馆cas认证链接获取（education_cas_link、elective_cas_link、library_cas_link）、任意智慧交大服务cas认证链接获取（cas_authority）。
