@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-14 09:44:39 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-14 15:14:08
+ * @Last Modified time: 2019-01-17 17:09:15
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -22,7 +22,7 @@ class Education //implements EducationInterface
     /**
      * education server base uri
      */
-    const BASE_URI = 'http://jwxt.ecjtu.jx.cn/';
+    const BASE_URI = 'http://jwxt.ecjtu.edu.cn/';
     /**
      * username
      *
@@ -89,39 +89,47 @@ class Education //implements EducationInterface
         $crawler->filter('.s_term li')->each(function (Crawler $node, $i) use (&$terms) {
             $terms[] = $node->text();
         });
-        /**
-         * save all course score
-         */
         $scores = [];
-
         $crawler->filter('ul.term_score')->each(function (Crawler $node, $i) use (&$scores) {
             $score = [];
-            $title = ['xq', 'kcmc', 'kcyq', 'khfs', 'kcxf', 'kscj', 'ckcj', 'cxcj', ];
+            $title = ['xq', 'course_name', 'course_require', 'check_trpe', 'credit', 'score', 'score_b', 'score_c', ];
 
             $node->filter('li')->each(function (Crawler $node, $i) use (&$score, &$title) {
                 if ($i == 1) {
                     preg_match('/【(.*)】(.*)/is', $node->text(), $match);
-                    $score['kcbh'] = $match[1];
+                    $score['course_id'] = $match[1];
                     $score[$title[$i]] = trim($match[2]);
                 } else {
                     $score[$title[$i]] = $node->text();
                 }
             });
-            /**
-             * score pass status
-             */
-            $score['is_passed'] = self::is_passed($score['kscj'], $score['ckcj'], $score['cxcj']);
-
+            $score['is_passed'] = self::is_passed($score['score'], $score['score_b'], $score['score_c']);
             $scores[] = $score;
         });
 
         $scores_tmp = [];
 
         foreach ($scores as $key => $value) {
-            $scores_tmp[$value['xq']][] = $value;
+            $term_t = $value['xq'];
+            unset($value['xq']);
+            ksort($value);
+            $value['course_name'] = preg_replace('/　*/is', '', $value['course_name']);
+            $scores_tmp[$term_t][] = $value;
         }
 
-        return ($term && !empty($scores_tmp[$term])) ? $scores_tmp[$term] : $scores_tmp;
+        $t = [];
+        foreach ($scores_tmp as $k => $v) {
+            $t[$k] = [
+                'term' => $k,
+                'lists' => $v,
+            ];
+        }
+
+        if ($term) {
+            return empty($t[$term]) ? [] : $t[$term];
+        } else {
+            return array_values($t);
+        }
     }
     /**
      * credit
@@ -140,34 +148,7 @@ class Education //implements EducationInterface
         $crawler = new Crawler($html);
 
         $credit = [];
-        $title = [
-            'banji',
-            'xingming',
-            'xuehao',
-            'xuejizhuangtai',
-            'xueyeyujingqingkuang',
-            'xueyeyujingqingkuang',
-            'xueweipingjunxuefenjidianyaoqiu',
-            'xueweipingjunxuefenjidianyaoqiu',
-            'zongxuefenyaoqiu',
-            'zongxuefenyaoqiu',
-            'zongxuefenyaoqiu',
-            'gonggongrenxuankexuefen',
-            'gonggongrenxuankexuefen',
-            'gonggongrenxuankexuefen',
-            'xuekerenxuankexuefen',
-            'xuekerenxuankexuefen',
-            'xuekerenxuankexuefen',
-            'zhuanyerenxuankexuefen',
-            'zhuanyerenxuankexuefen',
-            'zhuanyerenxuankexuefen',
-            'xueyeyujingqingkuang' => ['yingwancheng', 'yiwancheng'],
-            'xueweipingjunxuefenjidianyaoqiu' => ['yinghuode', 'yihuode'],
-            'zongxuefenyaoqiu' => ['yingwancheng', 'yiwancheng', 'qianxuefen'],
-            'gonggongrenxuankexuefen' => ['yingwancheng', 'yiwancheng', 'qianxuefen'],
-            'xuekerenxuankexuefen' => ['yingwancheng', 'yiwancheng', 'qianxuefen'],
-            'zhuanyerenxuankexuefen' => ['yingwancheng', 'yiwancheng', 'qianxuefen'],
-        ];
+        $title = ['class_name', 'name', 'student_id', 'study_status', 'study_warning_status', 'study_warning_status', 'degree_avrage_credit_require', 'degree_avrage_credit_require', 'total_credit_require', 'total_credit_require', 'total_credit_require', 'common_credit', 'common_credit', 'common_credit', 'course_credit', 'course_credit', 'course_credit', 'major_credit', 'major_credit', 'major_credit', 'study_warning_status' => ['should', 'done'], 'degree_avrage_credit_require' => ['get', 'got'], 'total_credit_require' => ['got', 'get', 'own'], 'common_credit' => ['got', 'get', 'own'], 'course_credit' => ['got', 'get', 'own'], 'major_credit' => ['got', 'get', 'own'], ];
 
         $crawler->filter('.score-count tr')->each(function (Crawler $node, $i) use (&$credit, &$title) {
             $node->filter('td')->each(function (Crawler $node, $i) use (&$credit, &$title) {
@@ -196,7 +177,6 @@ class Education //implements EducationInterface
         $response = $this->auth_client->get('scoreQuery/secondCreQue_findSecondCredit.action');
         $html = $response->getBody()->getContents();
         $crawler = new Crawler($html);
-
         $username = '';
         $student_id = '';
         $th = [];
@@ -220,10 +200,10 @@ class Education //implements EducationInterface
                 $student_id = $student_id ? : $td[2];
 
                 $tr[] = [
-                    'kechuang' => $td[2],
-                    'wentiyishu' => $td[3],
-                    'zhiyuanfuwu' => $td[4],
-                    'shehuigongzuo' => $td[5],
+                    'scientific' => $td[2],
+                    'art' => $td[3],
+                    'volunteer' => $td[4],
+                    'work' => $td[5],
                 ];
             }
         });
@@ -246,9 +226,7 @@ class Education //implements EducationInterface
     public function schedule(string $term = '')
     {
         $uri = 'Schedule/Schedule_getUserSchedume.action';
-
         $uri .= $term ? '?term=' . $term : '';
-
         $response = $this->auth_client->get($uri);
         $html = $response->getBody()->getContents();
         $crawler = new Crawler($html);
@@ -281,22 +259,22 @@ class Education //implements EducationInterface
                     preg_match('/(.*) @(.*)/is', $course[1], $str1);
                     preg_match('/(.*) (.*)/is', $course[2], $str2);
                     $scheduls[$day][] = [
-                        'kechengmingcheng' => $course[0],
-                        'jiaoshi' => trim($str1[1]),
-                        'didian' => trim($str1[2]),
-                        'zhouci' => trim($str2[1]),
-                        'jeici' => trim($str2[2]),
+                        'course_name' => $course[0],
+                        'teacher_name' => trim($str1[1]),
+                        'address' => trim($str1[2]),
+                        'weeek_span' => trim($str2[1]),
+                        'class_span' => trim($str2[2]),
                     ];
                 } else {
                     for ($i = 0; $i < count($course) / 3; $i++) {
                         preg_match('/(.*) @(.*)/is', $course[$i * 3 + 1], $str1);
                         preg_match('/(.*) (.*)/is', $course[$i * 3 + 2], $str2);
                         $schedules[$day][] = [
-                            'kechengmingcheng' => $course[0],
-                            'jiaoshi' => trim($str1[1]),
-                            'didian' => trim($str1[2]),
-                            'zhouci' => trim($str2[1]),
-                            'jeici' => trim($str2[2]),
+                            'course_name' => $course[0],
+                            'teacher_name' => trim($str1[1]),
+                            'address' => trim($str1[2]),
+                            'weeek_span' => trim($str2[1]),
+                            'class_span' => trim($str2[2]),
                         ];
                     }
                 }
@@ -344,13 +322,15 @@ class Education //implements EducationInterface
 
                 $course = explode('<br>', $text);
                 $str1 = explode(' ', $course[1]);
-                $week_schedules[$day][] = [
-                    'kechengmingcheng' => $course[0],
-                    'jiaoshi' => trim($str1[0]),
-                    'leixing' => trim(mb_substr($str1[1], 1)),
-                    'didian' => $course[2],
-                    'banjimingcheng' => $course[3],
+                $course = [
+                    'course_name' => $course[0],
+                    'teacher_name' => trim($str1[0]),
+                    'type' => trim(mb_substr($str1[1], 1)),
+                    'address' => $course[2],
+                    'class_name' => $course[3],
                 ];
+                ksort($course);
+                $week_schedules[$day][] = $course;
             });
         });
 
@@ -371,20 +351,8 @@ class Education //implements EducationInterface
         ]);
         $html = $response->getBody()->getContents();
         $jsonArr = json_decode($html, true);
-
         $daily = [];
-        $map = [
-            'className' => 'class_name',
-            'classRoom' => 'class_room',
-            'classSpan' => 'class_span',
-            'classString' => 'class_span_string',
-            'course' => 'course',
-            'courseRequire' => 'course_type',
-            'pkType' => 'type',
-            'teacherName' => 'teacher',
-            'weekDay' => 'day',
-            'weekSpan' => 'weeks',
-        ];
+        $map = ['className' => 'class_name', 'classRoom' => 'class_room', 'classSpan' => 'class_span', 'classString' => 'class_span_string', 'course' => 'course', 'courseRequire' => 'course_type', 'pkType' => 'type', 'teacherName' => 'teacher', 'weekDay' => 'day', 'weekSpan' => 'weeks', ];
 
         if (!empty($jsonArr)) {
             $daily['date'] = $jsonArr['date'];
@@ -419,26 +387,25 @@ class Education //implements EducationInterface
 
         $response = $this->auth_client->get($uri);
         $html = $response->getBody()->getContents();
+        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
         $crawler = new Crawler($html);
-        $exams = [];
-        $title = ['xueqi', 'kechengmingcheng', 'kechengxingzhi', 'banjimingcheng', 'xueshengrenshu', 'kaoshizhouci', 'kaoshishijian', 'kaoshididian', 'xiaobanbianhao', ];
+        $exams = ['term' => $term, 'lists' => []];
+        $title = ['xueqi', 'course_name', 'course_type', 'class_name', 'capacity', 'week', 'address', 'address', 'class_number', ];
 
         $crawler->filter('.table_border tr')->each(function (Crawler $node, $i) use (&$exams, &$title) {
             if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
             if ($i == 0) return;
 
             $exam = [];
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$exam, &$title) {
-                if ($i == 2 || $i == 3) {
-                    $tmp = trim($node->text());
-                    $tmp = preg_replace('/　+/is', '', $tmp);
-                    $exam[$title[$i]] = $tmp;
-                } else {
-                    $exam[$title[$i]] = trim($node->text());
-                }
 
+            $node->filter('td')->each(function (Crawler $node, $i) use (&$exam, &$title) {
+                $exam[$title[$i]] = $node->text();
             });
-            $exams[] = $exam;
+
+            $exams['term'] = $exam['xueqi'];
+            unset($exam['xueqi']);
+            ksort($exam);
+            $exams['lists'][] = $exam;
         });
 
         return $exams;
@@ -452,34 +419,28 @@ class Education //implements EducationInterface
     public function bexam(string $term = '')
     {
         $uri = 'examArrange/stuBKExam_stuBKExam.action';
-
         $uri .= $term ? '?term=' . $term : '';
-
         $response = $this->auth_client->get($uri);
         $html = $response->getBody()->getContents();
+        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
         $crawler = new Crawler($html);
-        /**
-         * Exam
-         */
-        $exams = [];
-        $title = ['xueqi', 'kechengmingcheng', 'kechengxingzhi', 'banjimingcheng', 'xueshengrenshu', 'kaoshizhouci', 'kaoshishijian', 'kaoshididian', 'xiaobanbianhao', ];
+        $exams = ['term' => $term, 'lists' => []];
+        $title = ['xueqi', 'course_id', 'course_name', 'course_require', 'week', 'time', 'address', ];
 
         $crawler->filter('.table_border tr')->each(function (Crawler $node, $i) use (&$exams, &$title) {
             if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
             if ($i == 0) return;
 
             $exam = [];
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$exam, &$title) {
-                if ($i == 2 || $i == 3) {
-                    $tmp = trim($node->text());
-                    $tmp = preg_replace('/　+/is', '', $tmp);
-                    $exam[$title[$i]] = $tmp;
-                } else {
-                    $exam[$title[$i]] = trim($node->text());
-                }
 
+            $node->filter('td')->each(function (Crawler $node, $i) use (&$exam, &$title) {
+                $exam[$title[$i]] = $node->text();
             });
-            $exams[] = $exam;
+
+            $exams['term'] = $exam['xueqi'];
+            unset($exam['xueqi']);
+            ksort($exam);
+            $exams['lists'][] = $exam;
         });
 
         return $exams;
@@ -495,10 +456,11 @@ class Education //implements EducationInterface
         $uri = $term ? '?term=' . $term : '';
         $response = $this->auth_client->get('Experiment/StudentExperiment_getExperiment.action' . $uri);
         $html = $response->getBody()->getContents();
+        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
         $crawler = new Crawler($html);
 
-        $experiments = [];
-        $title = ['xueqi', 'kechengmingcheng', 'kechengxingzhi', 'shiyanmingcheng', 'shiyanfangshi', 'pici', 'shijian', 'shiyandidian', 'jiaoshi', ];
+        $experiments = ['term' => $term, 'lists' => []];
+        $title = ['xueqi', 'course_name', 'course_type', 'name', 'type', 'times', 'time', 'address', 'teacher_name', ];
 
         $crawler->filter('#dis-exam-info tr')->each(function (Crawler $node, $i) use (&$experiments, &$title) {
             if (preg_match('/对不起!没有当前学期的实验数据。/is', $node->text())) return;
@@ -506,16 +468,13 @@ class Education //implements EducationInterface
 
             $experiment = [];
             $node->filter('td')->each(function (Crawler $node, $i) use (&$experiment, &$title) {
-                if ($i == 2 || $i == 3) {
-                    $tmp = trim($node->text());
-                    $tmp = preg_replace('/　+/is', '', $tmp);
-                    $experiment[$title[$i]] = $tmp;
-                } else {
-                    $experiment[$title[$i]] = trim($node->text());
-                }
-
+                $experiment[$title[$i]] = trim($node->text());
             });
-            $experiments[] = $experiment;
+
+            ksort($experiment);
+            $experiments['term'] = $experiment['xueqi'];
+            unset($experiment['xueqi']);
+            $experiments['lists'][] = $experiment;
         });
 
         return $experiments;
@@ -530,10 +489,10 @@ class Education //implements EducationInterface
     {
         if (empty($class_id)) {
             $profile = $this->profile();
-            $class_id = substr($profile['zaibanbianhao'], 0, 14);
+            $class_id = substr($profile['class_id'], 0, 14);
         }
 
-        if (!$class_id) return;
+        if (!$class_id) return [];
 
         $response = $this->auth_client->post('infoQuery/class_findStuNames.action', [
             'form_params' => [
@@ -546,12 +505,17 @@ class Education //implements EducationInterface
          * Mates
          */
         $mates = [];
-        $title = ['xuhao', 'xingming', 'xingbie', 'zaibanbianhao', 'xuehao', 'xuejizhuangtai', ];
+        $title = ['number', 'name', 'sex', 'class_id', 'student_id', 'study_status', ];
         $crawler->filter('tr')->each(function (Crawler $node, $i) use (&$mates, &$title) {
             if ($i == 0) return;
+
             $node->filter('td')->each(function (Crawler $node, $i) use (&$mates, &$title, &$mate) {
                 $mate[$title[$i]] = $node->text();
             });
+
+            ksort($mate);
+
+            $mate['sex'] = $mate['sex'] == '女' ? 2 : 1;
             $mates[] = $mate;
         });
 
@@ -571,14 +535,24 @@ class Education //implements EducationInterface
          * save profile
          */
         $profile = [];
-        $title = ['xuehao', 'zaibanbianhao', 'xingming', 'banji', 'xingbie', 'mingzu', 'chushengriqi', 'shenfenzheng', 'zhengzhimianmao', 'jiguan', 'peiyangfangan', 'yingyufenjijibie', 'xuejizhuangtai', 'chufenzhuangtai', 'gaokaokaosheghao', 'gaokaochengji', 'shengyuandi', ];
+        $title = ['student_id', 'class_id', 'name', 'class_name', 'sex', 'nation', 'birthday', 'id_card', 'party', 'native_place', 'training_plan', 'english_level', 'study_status', 'punish_status', 'college_eaxm_number', 'college_eaxm_score', 'student_origin', ];
 
         $crawler->filter('#info_detail td.v')->each(function (Crawler $node, $i) use (&$profile, &$title) {
             $profile[$title[$i]] = trim($node->text());
         });
 
-        unset($profile['shenfenzheng']);
-        unset($profile['zhengzhimianmao']);
+        unset($profile['id_card']);
+        unset($profile['party']);
+
+        if (!empty($profile['student_id']) && $profile['student_id'] == '2015031002000422') {
+            $profile['sex'] = '女';
+        }
+
+        if (!empty($profile['sex'])) {
+            $profile['sex'] = $profile['sex'] == '女' ? 2 : 1;
+        }
+
+        ksort($profile);
 
         return $profile;
     }
@@ -593,12 +567,13 @@ class Education //implements EducationInterface
         $uri = $term ? '?term=' . $term : '';
         $response = $this->auth_client->get('infoQuery/XKStu_findTerm.action' . $uri);
         $html = $response->getBody()->getContents();
+        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
         $crawler = new Crawler($html);
         /**
          * numbers
          */
         $numbers = [];
-        $title = ['xueqi', 'xuankeleixing', 'jiaoxuebanmingcheng', 'kechengmingcheng', 'kechengyaoqiu', 'kaohefangshi', 'xueshi', 'xuefen', 'shangkeshijian', 'renkejiaoshi', 'xuankeleixing', 'xiaobanmingcheng', 'xiaobanxuhao', ];
+        $title = ['xueqi', 'course_type', 'teach_class_name', 'course_name', 'require', 'check_type', 'period', 'credit', 'class_span', 'teacher_name', 'select_type', 'class_name', 'class_number', ];
 
         $crawler->filter('#dis-exam-info tbody tr')->each(function (Crawler $node, $i) use (&$numbers, &$title) {
             if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
@@ -613,7 +588,10 @@ class Education //implements EducationInterface
                 }
 
             });
-            $numbers[] = $number;
+            ksort($number);
+            $numbers['term'] = $number['xueqi'];
+            unset($number['xueqi']);
+            $numbers['lists'][] = $number;
         });
 
         return $numbers;
@@ -900,7 +878,7 @@ class Education //implements EducationInterface
             $this->uid = $uid;
         } else {
             if (empty($this->username) || empty($this->password)) {
-                throw new \Exception("Can not generate uuid, cause by username or password is null!", -3);
+                throw new \Exception("Can not generate uid, cause by username or password is null!", -3);
             }
 
             $this->uid = md5(sha1($this->username . $this->password));
@@ -957,7 +935,7 @@ class Education //implements EducationInterface
                 ]
             ]);
         } else {
-            throw new \Exception("Can not find authoritied seesionid from local cache!", -30);
+            throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
         }
     }
 

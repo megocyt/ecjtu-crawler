@@ -106,7 +106,7 @@ interface EducationInterface
      * @param string $cas_link
      * @return void
      */
-    public function cas_authority(string $uid, $cas_link = '');
+    public function cas_authority(string $uid, string $cas_link = '');
     /**
      * login
      *
