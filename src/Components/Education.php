@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-14 09:44:39 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-17 17:09:15
+ * @Last Modified time: 2019-01-17 17:20:55
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -22,7 +22,7 @@ class Education //implements EducationInterface
     /**
      * education server base uri
      */
-    const BASE_URI = 'http://jwxt.ecjtu.edu.cn/';
+    const BASE_URI = 'http://jwxt.ecjtu.jx.cn/';
     /**
      * username
      *
