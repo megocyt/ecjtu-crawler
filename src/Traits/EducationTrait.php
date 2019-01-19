@@ -61,6 +61,7 @@ trait EducationTrait
     {
         if ($uid) {
             $this->uid = $uid;
+            $this->init_http_client_handler($this->uid);
         } else {
             if (empty($this->username) || empty($this->password)) {
                 throw new \Exception("Can not generate uid, cause by username or password is null!", -3);
@@ -68,8 +69,6 @@ trait EducationTrait
 
             $this->uid = md5(sha1($this->username . $this->password));
         }
-
-        $this->init_http_client_handler($uid);
 
         return $this->uid;
     }
@@ -142,6 +141,7 @@ trait EducationTrait
                 ],
             ]);
         } else {
+            var_dump($uid);
             throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
         }
     }
