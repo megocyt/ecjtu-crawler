@@ -10,7 +10,7 @@
 
 namespace Megoc\Ecjtu\Interfaces;
 
-interface ProtalInterface
+interface PortalInterface
 {
     /**
      * notifications list

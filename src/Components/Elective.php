@@ -18,43 +18,15 @@ use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
 use Symfony\Component\DomCrawler\Crawler;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ServerException;
+use Megoc\Ecjtu\Traits\EducationTrait;
 
 class Elective implements ElectiveInterface
 {
+    use EducationTrait;
     /**
      * server base uri
      */
     const BASE_URI = 'http://xkxt.ecjtu.edu.cn/';
-    /**
-     * username
-     *
-     * @var string
-     */
-    protected $username = '';
-    /**
-     * password
-     *
-     * @var string
-     */
-    protected $password = '';
-    /**
-     * uid
-     *
-     * @var string
-     */
-    protected $uid = '';
-    /**
-     * none state client
-     *
-     * @var \GuzzleHttp\Client
-     */
-    protected $a_client;
-    /**
-     * authoritied client
-     *
-     * @var \GuzzleHttp\Client
-     */
-    protected $auth_client;
 
     /**
      * construct
@@ -63,12 +35,12 @@ class Elective implements ElectiveInterface
      */
     public function __construct(array $user = [])
     {
+        $this->init_cache_handler('xkxt.ecjtu.edu.cn');
+
         $this->init_http_client_handler();
 
         if (!empty($user['username']) && !empty($user['password'])) {
-            $this->set_user($user);
-            $this->uid();
-            $this->login();
+            $this->login($user);
         }
     }
     /**
@@ -332,9 +304,7 @@ class Elective implements ElectiveInterface
             $this->set_user($user);
         }
 
-        $cache_handler = new FilesystemCache('xkxt.ecjtu.jx.cn');
-
-        if ($cache_handler->has($this->uid())) {
+        if ($this->cache_handler->has($this->uid())) {
             $this->init_http_client_handler($this->uid());
             return;
         }
@@ -381,7 +351,7 @@ class Elective implements ElectiveInterface
              * test login result
              */
             if (!preg_match('/如何才能使用微信扫一扫登录/is', $html)) {
-                $cache_handler->set($this->uid(), $cookies_string, 900);
+                $this->cache_handler->set($this->uid(), $cookies_string, 900);
                 $this->init_http_client_handler($this->uid());
 
                 return;
@@ -406,83 +376,18 @@ class Elective implements ElectiveInterface
             }
         }
     }
-
-    public function cas_authority(string $uid, $cas_link)
+    /**
+     * cas authority
+     *
+     * @param string $uid
+     * @param string $cas_link
+     * @return void
+     */
+    public function cas_authority(string $uid, string $cas_link = '')
     {
         if (!$uid) {
             throw new \Exception("Uninque id is needed!", 1);
         }
     }
 
-    /**
-     * init http client
-     *
-     * @param string $uid
-     * @return void
-     */
-    protected function init_http_client_handler($uid = '')
-    {
-        $this->a_client = new Client([
-            'base_uri' => self::BASE_URI,
-            'timeout' => 5,
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-            ]
-        ]);
-
-        if (!$uid) {
-            return;
-        }
-
-        $cache_handler = new FilesystemCache('xkxt.ecjtu.jx.cn');
-
-        if ($cache_handler->has($uid)) {
-            $this->auth_client = new Client([
-                'base_uri' => self::BASE_URI,
-                'timeout' => 5,
-                'headers' => [
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-                    'Cookie' => $cache_handler->get($uid),
-                ]
-            ]);
-        } else {
-            throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
-        }
-    }
-    /**
-     * generate uid
-     *
-     * @return string
-     */
-    protected function uid($uid = '')
-    {
-        if ($uid) {
-            $this->uid = $uid;
-        } else {
-            if (empty($this->username) || empty($this->password)) {
-                throw new \Exception("Can not generate uid, cause by username or password is null!", -3);
-            }
-
-            $this->uid = md5(sha1($this->username . $this->password));
-        }
-
-        $this->init_http_client_handler($uid);
-
-        return $this->uid;
-    }
-    /**
-     * set user form
-     *
-     * @param array $user
-     * @return void
-     */
-    protected function set_user(array $user)
-    {
-        if (empty($user) || empty($user['username']) || empty($user['password'])) {
-            return;
-        }
-
-        $this->username = $user['username'];
-        $this->password = $user['password'];
-    }
 }

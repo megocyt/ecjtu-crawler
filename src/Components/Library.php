@@ -15,9 +15,11 @@ use Symfony\Component\DomCrawler\Crawler;
 use Symfony\Component\Cache\Simple\FilesystemCache;
 use GuzzleHttp\Exception\RequestException;
 use GuzzleHttp\Exception\ClientException;
+use Megoc\Ecjtu\Traits\EducationTrait;
 
 class Library implements LibraryInterface
 {
+    use EducationTrait;
     /**
      * base uri
      */
@@ -34,28 +36,20 @@ class Library implements LibraryInterface
      * @var string
      */
     protected $password = '';
-    /**
-     * a client handler
-     *
-     * @var \GuzzleHttp\Client
-     */
-    protected $a_client;
-    /**
-     * dcp authority client handler
-     *
-     * @var \GuzzleHttp\Client
-     */
-    protected $auth_client;
 
     /**
      * construct
      *
      * @param array $user
      */
-    public function __construct(array $user = [], $uid = '')
+    public function __construct(array $user = [])
     {
-        $this->set_user($user);
-        $this->init_client_handler($uid);
+        $this->init_cache_handler('lib1.ecjtu.jx.cn');
+        $this->init_http_client_handler();
+
+        if (!empty($user['username']) && !empty($user['password'])) {
+            $this->login($user);
+        }
     }
     /**
      * history brooy record
@@ -167,18 +161,18 @@ class Library implements LibraryInterface
     /**
      * through cas authority id 
      *
-     * @param string $key
+     * @param string $uid
      * @param string $cas_link
      * @return void
      */
-    public function cas_authority($key, $cas_link = '')
+    public function cas_authority(string $uid, string $cas_link = '')
     {
-        if (!$key) {
+        if (!$uid) {
             throw new \Exception("uninque id is needed!", 1);
         }
 
         if (!$cas_link) {
-            $this->init_client_handler($key);
+            $this->init_client_handler($uid);
             return;
         }
 
@@ -211,31 +205,27 @@ class Library implements LibraryInterface
             throw new \Exception("Library manager system login failed!", 1);
         }
 
-        if (!$key) {
-            return;
-        }
+        $this->cache_handler->set($uid, $cookies_string, 1800);
+        $this->init_client_handler($uid);
 
-        $cache_handler = new FilesystemCache('lib1.ecjtu.jx.cn');
-        $cache_handler->set($key, $cookies_string, 1800);
-        $this->init_client_handler($key);
-
-        return $this;
     }
     /**
      * login system
      *
      * @return void
      */
-    protected function login()
+    public function login(array $user = [])
     {
-        if (empty($this->username) || empty($this->password)) {
-            throw new \Exception("Username and password is needed to login system", 400);
+        if (empty($user['username']) || empty($user['password'])) {
+            if (!$this->username || !$this->password) {
+                throw new \Exception("Username or password is needed to login system!", -1);
+            }
+        } else {
+            $this->set_user($user);
         }
 
-        $cache_handler = new FilesystemCache('lib1.ecjtu.jx.cn');
-        $key = md5(sha1($this->username . $this->password));
-
-        if ($cache_handler->has($key)) {
+        if ($this->cache_handler->has($this->uid())) {
+            $this->init_http_client_handler($this->uid());
             return;
         }
 
@@ -271,63 +261,10 @@ class Library implements LibraryInterface
                 throw new \Exception("Username or Password is incorrected", 401);
             }
 
-            $cache_handler->set($key, $cookies_string, 600);
+            $this->cache_handler->set($this->uid(), $cookies_string, 600);
+            $this->init_http_client_handler($this->uid());
         } catch (\Exception $e) {
             throw $e;
-        }
-    }
-    /**
-     * set user form
-     *
-     * @param array $user
-     * @return void
-     */
-    protected function set_user(array $user)
-    {
-        if (empty($user) || empty($user['username']) || empty($user['password'])) {
-            // throw new \Exception("Username or Password is needed", 1);
-        }
-
-        $this->username = $user['username'];
-        $this->password = $user['password'];
-        $this->init_client_handler();
-        $this->login();
-    }
-    /**
-     * init handler
-     *
-     * @return void
-     */
-    protected function init_client_handler($key = '')
-    {
-        $this->a_client = new Client([
-            'base_uri' => self::BASE_URI,
-            'timeout' => 5,
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-            ]
-        ]);
-
-        $cache_handler = new FilesystemCache('lib1.ecjtu.jx.cn');
-
-        if (!$key) {
-            if (!$this->username) {
-                return;
-            }
-
-            $key = md5(sha1($this->username . $this->password));
-        }
-
-        if ($cache_handler->has($key)) {
-            $this->auth_client = new Client([
-                'base_uri' => self::BASE_URI,
-                'timeout' => 5,
-                'http_errors' => false,
-                'headers' => [
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-                    'Cookie' => $cache_handler->get($key),
-                ]
-            ]);
         }
     }
 }

@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-14 09:44:39 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-17 17:20:55
+ * @Last Modified time: 2019-01-19 11:44:37
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -11,6 +11,7 @@
 namespace Megoc\Ecjtu\Components;
 
 use Megoc\Ecjtu\Interfaces\EducationInterface;
+use Megoc\Ecjtu\Traits\EducationTrait;
 use GuzzleHttp\Client;
 use Symfony\Component\Cache\Simple\FilesystemCache;
 use GuzzleHttp\Cookie\CookieJar;
@@ -19,40 +20,12 @@ use Symfony\Component\DomCrawler\Crawler;
 
 class Education //implements EducationInterface
 {
+    use EducationTrait;
     /**
      * education server base uri
      */
-    const BASE_URI = 'http://jwxt.ecjtu.jx.cn/';
-    /**
-     * username
-     *
-     * @var string
-     */
-    protected $username = '';
-    /**
-     * password
-     *
-     * @var string
-     */
-    protected $password = '';
-    /**
-     * uid use as cache key
-     *
-     * @var string
-     */
-    protected $uid = '';
-    /**
-     * none state client
-     *
-     * @var \GuzzleHttp\Client
-     */
-    protected $a_client;
-    /**
-     * authoritied client
-     *
-     * @var \GuzzleHttp\Client
-     */
-    protected $auth_client;
+    const BASE_URI = 'http://jwxt.ecjtu.edu.cn/';
+
     /**
      * construct
      *
@@ -60,12 +33,11 @@ class Education //implements EducationInterface
      */
     public function __construct(array $user = [])
     {
+        $this->init_cache_handler('jwxt.ecjtu.edu.cn');
         $this->init_http_client_handler();
 
         if (!empty($user['username']) && !empty($user['password'])) {
-            $this->set_user($user);
-            $this->uid();
-            $this->login();
+            $this->login($user);
         }
 
     }
@@ -661,7 +633,7 @@ class Education //implements EducationInterface
      * @param string $cas_link
      * @return void
      */
-    public function cas_authority(string $uid, $cas_link = '')
+    public function cas_authority(string $uid, string $cas_link = '')
     {
         if (!$uid) {
             throw new \Exception("unique id is needed in cas authority!", -5);
@@ -698,8 +670,7 @@ class Education //implements EducationInterface
             throw new \Exception("Cas authority failed!", 400);
         }
 
-        $cache_handler = new FilesystemCache('jwxt.ecjtu.jx.cn');
-        $cache_handler->set($uid, $cookies_string, 900);
+        $this->cache_handler->set($uid, $cookies_string, 900);
         $this->init_http_client_handler($uid);
     }
     /**
@@ -718,9 +689,7 @@ class Education //implements EducationInterface
             $this->set_user($user);
         }
 
-        $cache_handler = new FilesystemCache('jwxt.ecjtu.jx.cn');
-
-        if ($cache_handler->has($this->uid())) {
+        if ($this->cache_handler->has($this->uid())) {
             $this->init_http_client_handler($this->uid());
             return;
         }
@@ -754,7 +723,7 @@ class Education //implements EducationInterface
          * test login result
          */
         if ($html == 'success') {
-            $cache_handler->set($this->uid(), $cookies_string, 900);
+            $this->cache_handler->set($this->uid(), $cookies_string, 900);
             $this->init_http_client_handler($this->uid());
 
             return;
@@ -867,78 +836,6 @@ class Education //implements EducationInterface
             'mod_content' => $mod_content,
         ];
     }
-    /**
-     * generate uid
-     *
-     * @return string
-     */
-    protected function uid($uid = '')
-    {
-        if ($uid) {
-            $this->uid = $uid;
-        } else {
-            if (empty($this->username) || empty($this->password)) {
-                throw new \Exception("Can not generate uid, cause by username or password is null!", -3);
-            }
-
-            $this->uid = md5(sha1($this->username . $this->password));
-        }
-
-        $this->init_http_client_handler($uid);
-
-        return $this->uid;
-    }
-    /**
-     * set user form
-     *
-     * @param array $user
-     * @return void
-     */
-    protected function set_user(array $user)
-    {
-        if (empty($user) || empty($user['username']) || empty($user['password'])) {
-            return;
-        }
-
-        $this->username = $user['username'];
-        $this->password = $user['password'];
-    }
-    /**
-     * init http client
-     *
-     * @param string $uid
-     * @return void
-     */
-    protected function init_http_client_handler($uid = '')
-    {
-        $this->a_client = new Client([
-            'base_uri' => self::BASE_URI,
-            'timeout' => 5,
-            'headers' => [
-                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-            ]
-        ]);
-
-        if (!$uid) {
-            return;
-        }
-
-        $cache_handler = new FilesystemCache('jwxt.ecjtu.jx.cn');
-
-        if ($cache_handler->has($uid)) {
-            $this->auth_client = new Client([
-                'base_uri' => self::BASE_URI,
-                'timeout' => 5,
-                'headers' => [
-                    'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
-                    'Cookie' => $cache_handler->get($uid),
-                ]
-            ]);
-        } else {
-            throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
-        }
-    }
-
     /**
      * check score pass status
      *
