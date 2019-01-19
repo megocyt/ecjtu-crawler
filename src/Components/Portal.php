@@ -13,7 +13,7 @@ namespace Megoc\Ecjtu\Components;
 use Megoc\Ecjtu\Interfaces\PortalInterface;
 use Megoc\Ecjtu\Traits\EducationTrait;
 
-class Portal //implements PortalInterface
+class Portal implements PortalInterface
 {
     use EducationTrait;
     /**
@@ -309,5 +309,36 @@ class Portal //implements PortalInterface
 
         $this->cache_handler->set($this->uid(), $cookies_string, 1800);
         $this->init_http_client_handler($this->uid());
+    }
+    /**
+     * cas authority
+     *
+     * @param string $uid
+     * @param string $cas_authority_url
+     * @return void
+     */
+    public function cas_authority(string $uid, string $cas_authority_url = '')
+    {
+        if (!$uid) {
+            throw new \Exception("unique id is needed in cas authority!", -5);
+        }
+
+        if (!$cas_authority_url || !preg_match('/^http|https/is', $cas_authority_url)) {
+            throw new \Exception("cas authority need a correct cas url!", -1);
+        }
+
+        $response = $this->a_client->get($cas_authority_url);
+        $html = $response->getBody()->getContents();
+
+        if (preg_match('/初始密码为：身份证后6位/is', $html)) {
+            throw new \Exception("Portal Authority failed!", -1);
+        }
+
+        $cookies = $response->getHeader('Set-Cookie');
+        $cookies_string = join(' ', $cookies);
+        $cookies_string = preg_replace('/path=.*; HttpOnly/is', '', $cookies_string);
+
+        $this->cache_handler->set($uid, $cookies_string, 1800);
+        $this->init_http_client_handler($uid);
     }
 }

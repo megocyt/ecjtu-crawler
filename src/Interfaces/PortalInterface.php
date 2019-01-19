@@ -42,35 +42,11 @@ interface PortalInterface
      */
     public function profile();
     /**
-     * portal manager system cas link url
-     *
-     * @return string
-     */
-    public function portal_cas_link();
-    /**
-     * education manager system cas link url
-     *
-     * @return string
-     */
-    public function education_cas_link();
-    /**
-     * elective manager system cas link url
-     *
-     * @return string
-     */
-    public function elective_cas_link();
-    /**
-     * library manager system cas link url
-     *
-     * @return string
-     */
-    public function library_cas_link();
-    /**
-     * any service cas link url
+     * cas authority
      *
      * @param string $service_cas_url
-     * @return string
+     * @return void
      */
-    public function cas_authority_link($service_cas_url = '');
+    public function cas_authority(string $uid, string $service_cas_url = '');
 
 }
