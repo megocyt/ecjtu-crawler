@@ -454,10 +454,10 @@ class Education //implements EducationInterface
     /**
      * class mates
      *
-     * @param string $term
+     * @param string $class_id
      * @return array
      */
-    public function classmate(string $term = '')
+    public function classmate(string $class_id = '')
     {
         if (empty($class_id)) {
             $profile = $this->profile();
@@ -571,23 +571,23 @@ class Education //implements EducationInterface
     /**
      * class list
      *
-     * @param string $major
+     * @param string $college
      * @param string $grade
      * @return array
      */
-    public function class_list(string $major = '', string $grade = '')
+    public function class_list(string $college = '', string $grade = '')
     {
         if (empty($grade)) {
             $grade = date('Y');
         }
 
-        if (empty($major)) {
+        if (empty($college)) {
             return [];
         }
 
         $response = $this->auth_client->post('infoQuery/class_findClaByDepGra.action', [
             'form_params' => [
-                'depInfo.departMent' => $major,
+                'depInfo.departMent' => $college,
                 'gra.grade' => $grade,
             ]
         ]);

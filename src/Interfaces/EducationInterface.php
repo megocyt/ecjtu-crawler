@@ -88,11 +88,11 @@ interface EducationInterface
     /**
      * class list
      *
-     * @param string $major
+     * @param string $college
      * @param string $grade
      * @return array
      */
-    public function class_list(string $major = '', string $grade = '');
+    public function class_list(string $college = '', string $grade = '');
     /**
      * college list
      *
@@ -114,5 +114,19 @@ interface EducationInterface
      * @return void
      */
     public function login(array $user = []);
+    /**
+     * notifications
+     *
+     * @param integer $page
+     * @return array
+     */
+    public function notifications(int $page = 1);
+    /**
+     * notification detail
+     *
+     * @param string $resource_id
+     * @return array
+     */
+    public function notification_detail(string $resource_id = '');
 
 }
