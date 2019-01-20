@@ -141,7 +141,6 @@ trait EducationTrait
                 ],
             ]);
         } else {
-            var_dump($uid);
             throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
         }
     }

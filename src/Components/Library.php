@@ -172,7 +172,7 @@ class Library implements LibraryInterface
         }
 
         if (!$cas_link) {
-            $this->init_client_handler($uid);
+            $this->init_http_client_handler($uid);
             return;
         }
 
@@ -206,7 +206,7 @@ class Library implements LibraryInterface
         }
 
         $this->cache_handler->set($uid, $cookies_string, 1800);
-        $this->init_client_handler($uid);
+        $this->init_http_client_handler($uid);
 
     }
     /**
