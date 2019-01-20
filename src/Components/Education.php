@@ -24,7 +24,7 @@ class Education //implements EducationInterface
     /**
      * education server base uri
      */
-    const BASE_URI = 'http://jwxt.ecjtu.edu.cn/';
+    const BASE_URI = 'http://jwxt.ecjtu.jx.cn/';
 
     /**
      * construct
@@ -33,7 +33,7 @@ class Education //implements EducationInterface
      */
     public function __construct(array $user = [])
     {
-        $this->init_cache_handler('jwxt.ecjtu.edu.cn');
+        $this->init_cache_handler('jwxt.ecjtu.jx.cn');
         $this->init_http_client_handler();
 
         if (!empty($user['username']) && !empty($user['password'])) {
@@ -80,12 +80,15 @@ class Education //implements EducationInterface
         });
 
         $scores_tmp = [];
-
+        $unexcept_str_rules = [
+            '/　　*/is',
+            '/  */is',
+        ];
         foreach ($scores as $key => $value) {
             $term_t = $value['xq'];
             unset($value['xq']);
             ksort($value);
-            $value['course_name'] = preg_replace('/　*/is', '', $value['course_name']);
+            $value['course_name'] = preg_replace($unexcept_str_rules, '', $value['course_name']);
             $scores_tmp[$term_t][] = $value;
         }
 
