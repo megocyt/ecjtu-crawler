@@ -24,9 +24,10 @@ interface ElectiveInterface
     /**
      * Public couser list
      *
+     * @param integer $page
      * @return array
      */
-    public function public_course_list();
+    public function public_course_list(int $page = 1);
     /**
      * Get teacher's resume
      *
@@ -48,5 +49,12 @@ interface ElectiveInterface
      * @return void
      */
     public function cas_authority(string $uid, string $cas_link);
+    /**
+     * 登录
+     *
+     * @param array $user
+     * @return void
+     */
+    public function login(array $user = []);
 
 }

@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-14 09:44:39 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-02-13 11:18:41
+ * @Last Modified time: 2019-02-13 11:53:21
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
@@ -23,7 +23,7 @@ use Megoc\Ecjtu\Exceptions\UnauthorizedException;
 use Symfony\Component\Cache\Simple\FilesystemCache;
 use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
-class Education //implements EducationInterface
+class Education implements EducationInterface
 {
     use EducationTrait;
     /**

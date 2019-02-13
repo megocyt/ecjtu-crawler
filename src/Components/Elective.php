@@ -3,7 +3,7 @@
  * @Author: Megoc 
  * @Date: 2019-01-17 09:37:42 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-02-13 11:18:23
+ * @Last Modified time: 2019-02-13 12:08:31
  * @E-mail: megoc@megoc.org 
  * @Description: create by vscode 
  */
@@ -128,10 +128,10 @@ class Elective implements ElectiveInterface
     /**
      * public course list
      *
-     * @param string $page
+     * @param int $page
      * @return array
      */
-    public function public_course_list($page = '')
+    public function public_course_list($page = 1)
     {
         $uri = 'commonXK/commonXK_getCoureTeachTask.action?currentPage=' . $page;
 

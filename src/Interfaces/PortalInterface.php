@@ -48,5 +48,12 @@ interface PortalInterface
      * @return void
      */
     public function cas_authority(string $uid, string $service_cas_url = '');
+    /**
+     * login
+     *
+     * @param array $user
+     * @return void
+     */
+    public function login(array $user = []);
 
 }
