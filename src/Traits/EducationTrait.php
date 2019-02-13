@@ -3,7 +3,7 @@
  * @Author: Megoc
  * @Date: 2019-01-19 11:43:08
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-19 13:06:25
+ * @Last Modified time: 2019-02-13 11:17:09
  * @Email: megoc@megoc.org
  * @Description: Create by vscode
  */
@@ -11,6 +11,7 @@
 namespace Megoc\Ecjtu\Traits;
 
 use GuzzleHttp\Client;
+use Megoc\Ecjtu\Exceptions\CacheException;
 use Symfony\Component\Cache\Simple\FilesystemCache;
 
 trait EducationTrait
@@ -64,7 +65,7 @@ trait EducationTrait
             $this->init_http_client_handler($this->uid);
         } else {
             if (empty($this->username) || empty($this->password)) {
-                throw new \Exception("Can not generate uid, cause by username or password is null!", -3);
+                throw new CacheException("Can not generate uid, cause by username or password is null!", -3);
             }
 
             $this->uid = md5(sha1($this->username . $this->password));
@@ -141,7 +142,7 @@ trait EducationTrait
                 ],
             ]);
         } else {
-            throw new \Exception("Can not find authoritied sessionid from local cache!", -30);
+            throw new CacheException("Can not find authoritied sessionid from local cache!", -30);
         }
     }
 

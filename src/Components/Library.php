@@ -3,19 +3,22 @@
  * @Author: Megoc 
  * @Date: 2019-01-12 18:08:06 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-17 15:43:11
+ * @Last Modified time: 2019-02-13 11:18:09
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Interfaces\LibraryInterface;
 use GuzzleHttp\Client;
-use Symfony\Component\DomCrawler\Crawler;
-use Symfony\Component\Cache\Simple\FilesystemCache;
-use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\ClientException;
 use Megoc\Ecjtu\Traits\EducationTrait;
+use GuzzleHttp\Exception\ClientException;
+use Symfony\Component\DomCrawler\Crawler;
+use GuzzleHttp\Exception\RequestException;
+use Megoc\Ecjtu\Exceptions\CacheException;
+use Megoc\Ecjtu\Interfaces\LibraryInterface;
+use Megoc\Ecjtu\Exceptions\UnauthorizedException;
+use Symfony\Component\Cache\Simple\FilesystemCache;
+use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Library implements LibraryInterface
 {
@@ -168,7 +171,7 @@ class Library implements LibraryInterface
     public function cas_authority(string $uid, string $cas_link = '')
     {
         if (!$uid) {
-            throw new \Exception("uninque id is needed!", 1);
+            throw new CacheException("uninque id is needed!", 1);
         }
 
         if (!$cas_link) {
@@ -218,15 +221,14 @@ class Library implements LibraryInterface
     {
         if (empty($user['username']) || empty($user['password'])) {
             if (!$this->username || !$this->password) {
-                throw new \Exception("Username or password is needed to login system!", -1);
+                throw new UnauthorizedException("Username or password is needed to login system!");
             }
         } else {
             $this->set_user($user);
         }
 
         if ($this->cache_handler->has($this->uid())) {
-            $this->init_http_client_handler($this->uid());
-            return;
+            return $this->init_http_client_handler($this->uid());
         }
 
         $response = $this->a_client->get('gdweb/ReaderLogin.aspx');
@@ -258,7 +260,7 @@ class Library implements LibraryInterface
             $html = $response->getBody()->getContents();
 
             if (preg_match('/密码错误！请重新输入！/is', $html)) {
-                throw new \Exception("Username or Password is incorrected", 401);
+                throw new AccountIncorrectException();
             }
 
             $this->cache_handler->set($this->uid(), $cookies_string, 600);
