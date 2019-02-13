@@ -49,7 +49,7 @@ var_dump($course);
 | college_list |  | array | 学院列表 |
 | cas_authority | string $uid </br> string $cas_link | array | cas认证登录 |
 | login | array $user |  | 登录 |
-| notifications | int $page | array | 通知公告 |
+| notifications | integer $page | array | 通知公告 |
 | notification_detail | string $resource_id | array | 通知公告信息 |
 
 - Elective 组件
@@ -71,7 +71,7 @@ var_dump($course);
 | history | integer $page | array | 历史借阅记录 |
 | profile |  | array | 账号信息 |
 | cas_authority | string $uid </br> string $cas_link | array | cas认证登录 |
-| login | array $user = [] |  | 登录 |
+| login | array $user |  | 登录 |
 
 - Portal 组件
 
