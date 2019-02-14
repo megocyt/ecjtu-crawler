@@ -31,7 +31,7 @@ var_dump($course);
 
 - Education 组件
 
-| 方法名称 | 参数 | 返回 | 备注说明 |
+| 方法名称 | 参数列表 | 返回值类型 | 备注说明 |
 | ------ | ------ | ------ | ------ |
 | score | string $term | array | 成绩 |
 | credit |  | array | 学分获得情况 |
@@ -47,14 +47,14 @@ var_dump($course);
 | class_number | string $term | array | 小班序号 |
 | class_list | string $college </br> string $grade | array | 班级列表 |
 | college_list |  | array | 学院列表 |
-| cas_authority | string $uid </br> string $cas_link | array | cas认证登录 |
+| cas_authority | string $uid </br> string $cas_link |  | cas认证登录 |
 | login | array $user |  | 登录 |
 | notifications | integer $page | array | 通知公告 |
 | notification_detail | string $resource_id | array | 通知公告信息 |
 
 - Elective 组件
 
-| 方法名称 | 参数 | 返回 | 备注说明 |
+| 方法名称 | 参数列表 | 返回值类型 | 备注说明 |
 | ------ | ------ | ------ | ------ |
 | course | string $term | array | 我的选课 |
 | profile |  | array | 账号信息 |
@@ -66,31 +66,31 @@ var_dump($course);
 
 - Library 组件
 
-| 方法名称 | 参数 | 返回 | 备注说明 |
+| 方法名称 | 参数列表 | 返回值类型 | 备注说明 |
 | ------ | ------ | ------ | ------ |
 | history | integer $page | array | 历史借阅记录 |
 | profile |  | array | 账号信息 |
-| cas_authority | string $uid </br> string $cas_link | array | cas认证登录 |
+| cas_authority | string $uid </br> string $cas_link |  | cas认证登录 |
 | login | array $user |  | 登录 |
 
 - Portal 组件
 
-| 方法名称 | 参数 | 返回 | 备注说明 |
+| 方法名称 | 参数列表 | 返回值类型 | 备注说明 |
 | ------ | ------ | ------ | ------ |
 | notifications | integer $page </br> integer $page_size | array | 通知公告 |
 | notification_detail | string $resource_id | array | 通知公告详细信息 |
 | lost_notifications | integer $page </br> integer $page_size | array | 失物招领公告 |
 | profile |  | array | 账号信息 |
-| cas_authority | string $uid </br> string $cas_link | array | cas认证登录 |
+| cas_authority | string $uid </br> string $cas_link |  | cas认证登录 |
 | login | array $user |  | 登录 |
 
 - PortalCAS 组件
 
-| 方法名称 | 参数 | 返回 | 备注说明 |
+| 方法名称 | 参数列表 | 返回值类型 | 备注说明 |
 | ------ | ------ | ------ | ------ |
 | cas_authority_link | string $service_cas_uri </br> string $cas_link | string | cas认证登录链接 |
 | login | array $user |  | 登录 |
-| encrypted_password | string $password | string | 学分获得情况 |
+| encrypted_password | string $password | string | 加密密码 |
 | service_name2service_uri | string $service_name | string | 根据服务名获取服务cas认证服务器地址 |
 
 ## Installing Ecjtu Crawler
