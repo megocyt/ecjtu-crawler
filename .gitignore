@@ -1,8 +1,8 @@
 !.gitignore
 .idea
-composer.lock
 *.log
 .phpintel
 .git
 .vscode
 vendor
+composer.lock
