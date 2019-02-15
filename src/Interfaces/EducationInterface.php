@@ -9,28 +9,33 @@ namespace Megoc\Ecjtu\Interfaces;
 interface EducationInterface
 {
     /**
-     * Score query
+     * 成绩
      *
      * @param string $term
      * @return array
      */
     public function score(string $term = '');
     /**
-     * Credit Query
+     * 学分获得情况
      *
-     * @param string $term
      * @return array
      */
     public function credit();
     /**
-     * Schedule Query
+     * 第二课堂学分获得情况
+     *
+     * @return array
+     */
+    public function second_credit();
+    /**
+     * 课表
      *
      * @param string $term
      * @return array
      */
     public function schedule(string $term = '');
     /**
-     * week schedule
+     * 周历
      *
      * @param string $week
      * @param string $term
@@ -38,55 +43,55 @@ interface EducationInterface
      */
     public function week_schedule(string $week = '', string $term = '');
     /**
-     * Daily schedule Query
+     * 日历
      *
      * @param string $date
      * @return array
      */
     public function daily(string $date);
     /**
-     * Exam arrange Query
+     * 考试安排
      *
      * @param string $term
      * @return array
      */
     public function exam(string $term = '');
     /**
-     * Bexam arrange Query
+     * 补考安排
      *
      * @param string $term
      * @return array
      */
     public function bexam(string $term = '');
     /**
-     * Experiment Query
+     * 实验安排
      *
      * @param string $term
      * @return array
      */
     public function experiment(string $term = '');
     /**
-     * Classmate Query
+     * 班级名单
      *
      * @param string $class_id
      * @return array
      */
     public function classmate(string $class_id = '');
     /**
-     * Profile
+     * 账户信息
      *
      * @return array
      */
     public function profile();
     /**
-     * Class Number Query
+     * 小班序号
      *
      * @param string $term
      * @return array
      */
     public function class_number(string $term = '');
     /**
-     * class list
+     * 班级列表
      *
      * @param string $college
      * @param string $grade
@@ -94,13 +99,13 @@ interface EducationInterface
      */
     public function class_list(string $college = '', string $grade = '');
     /**
-     * college list
+     * 学院列表
      *
      * @return array
      */
     public function college_list();
     /**
-     * cas authority
+     * cas认证登录
      *
      * @param string $uid
      * @param string $cas_link
@@ -108,21 +113,21 @@ interface EducationInterface
      */
     public function cas_authority(string $uid, string $cas_link = '');
     /**
-     * login
+     * 登录系统
      *
      * @param array $user
      * @return void
      */
     public function login(array $user = []);
     /**
-     * notifications
+     * 通知公告
      *
      * @param integer $page
      * @return array
      */
     public function notifications(int $page = 1);
     /**
-     * notification detail
+     * 通知公告信息
      *
      * @param string $resource_id
      * @return array

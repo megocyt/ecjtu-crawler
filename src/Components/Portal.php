@@ -3,15 +3,18 @@
  * @Author: Megoc
  * @Date: 2019-01-19 13:06:10
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-19 13:10:36
+ * @Last Modified time: 2019-02-13 11:07:20
  * @Email: megoc@megoc.org
  * @Description: Create by vscode
  */
 
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Interfaces\PortalInterface;
+use Megoc\Ecjtu\Components\PortalCAS;
 use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Interfaces\PortalInterface;
+use Megoc\Ecjtu\Exceptions\UnauthorizedException;
+use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Portal implements PortalInterface
 {
@@ -278,15 +281,14 @@ class Portal implements PortalInterface
     {
         if (empty($user['username']) || empty($user['password'])) {
             if (!$this->username || !$this->password) {
-                throw new \Exception("Username or password is needed to login system!", -1);
+                throw new UnauthorizedException("Username or password is needed to login system!");
             }
         } else {
             $this->set_user($user);
         }
 
         if ($this->cache_handler->has($this->uid())) {
-            $this->init_http_client_handler($this->uid());
-            return;
+            return $this->init_http_client_handler($this->uid());
         }
 
         $CAS = new PortalCAS([
@@ -300,7 +302,7 @@ class Portal implements PortalInterface
         $html = $response->getBody()->getContents();
 
         if (preg_match('/初始密码为：身份证后6位/is', $html)) {
-            throw new \Exception("Portal Authority failed!", -1);
+            throw new AccountIncorrectException();
         }
 
         $cookies = $response->getHeader('Set-Cookie');
@@ -331,7 +333,7 @@ class Portal implements PortalInterface
         $html = $response->getBody()->getContents();
 
         if (preg_match('/初始密码为：身份证后6位/is', $html)) {
-            throw new \Exception("Portal Authority failed!", -1);
+            throw new AccountIncorrectException();
         }
 
         $cookies = $response->getHeader('Set-Cookie');

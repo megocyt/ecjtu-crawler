@@ -3,22 +3,27 @@
  * @Author: Megoc 
  * @Date: 2019-01-14 09:44:39 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-19 11:44:37
+ * @Last Modified time: 2019-02-13 11:53:21
  * @E-mail: megoc@megoc.org 
  * @Description: Create by vscode 
  */
 
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Interfaces\EducationInterface;
-use Megoc\Ecjtu\Traits\EducationTrait;
 use GuzzleHttp\Client;
-use Symfony\Component\Cache\Simple\FilesystemCache;
 use GuzzleHttp\Cookie\CookieJar;
 use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
+use Megoc\Ecjtu\Traits\EducationTrait;
 use Symfony\Component\DomCrawler\Crawler;
+use Megoc\Ecjtu\Exceptions\CacheException;
+use Megoc\Ecjtu\Exceptions\CaptchaException;
+use Megoc\Ecjtu\Exceptions\UnassessException;
+use Megoc\Ecjtu\Interfaces\EducationInterface;
+use Megoc\Ecjtu\Exceptions\UnauthorizedException;
+use Symfony\Component\Cache\Simple\FilesystemCache;
+use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
-class Education //implements EducationInterface
+class Education implements EducationInterface
 {
     use EducationTrait;
     /**
@@ -53,7 +58,7 @@ class Education //implements EducationInterface
         $html = $response->getBody()->getContents();
 
         if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
-            throw new \Exception("未评教完成，无法获取成绩！", -20);
+            throw new UnassessException();
         }
 
         $crawler = new Crawler($html);
@@ -64,7 +69,7 @@ class Education //implements EducationInterface
         $scores = [];
         $crawler->filter('ul.term_score')->each(function (Crawler $node, $i) use (&$scores) {
             $score = [];
-            $title = ['xq', 'course_name', 'course_require', 'check_trpe', 'credit', 'score', 'score_b', 'score_c', ];
+            $title = ['xq', 'course_name', 'course_require', 'check_type', 'credit', 'score', 'score_b', 'score_c', ];
 
             $node->filter('li')->each(function (Crawler $node, $i) use (&$score, &$title) {
                 if ($i == 1) {
@@ -117,7 +122,7 @@ class Education //implements EducationInterface
         $html = $response->getBody()->getContents();
 
         if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
-            throw new \Exception("未评教完成，无法获取学分信息！", -20);
+            throw new UnassessException();
         }
 
         $crawler = new Crawler($html);
@@ -269,7 +274,7 @@ class Education //implements EducationInterface
     public function week_schedule(string $week = '', string $term = '')
     {
         $uri = 'Schedule/Weekcalendar_getStudentWeekcalendar.action?week=' . $week;
-        $uri .= $term ? : '';
+        $uri .= $term ? '&term=' . $term : '';
         $response = $this->auth_client->get($uri);
         $html = $response->getBody()->getContents();
         $crawler = new Crawler($html);
@@ -639,7 +644,7 @@ class Education //implements EducationInterface
     public function cas_authority(string $uid, string $cas_link = '')
     {
         if (!$uid) {
-            throw new \Exception("unique id is needed in cas authority!", -5);
+            throw new CacheException("unique id is needed in cas authority!", -5);
         }
 
         if (!$cas_link) {
@@ -686,7 +691,7 @@ class Education //implements EducationInterface
     {
         if (empty($user['username']) || empty($user['password'])) {
             if (!$this->username || !$this->password) {
-                throw new \Exception("Username or password is needed to login system!", -1);
+                throw new UnauthorizedException("Username or password is needed to login system!");
             }
         } else {
             $this->set_user($user);
@@ -733,7 +738,7 @@ class Education //implements EducationInterface
         }
 
         if ($html == '用户名或密码错误') {
-            throw new \Exception("Username or password is incorrected!", -4);
+            throw new AccountIncorrectException();
         }
         /**
          * if is captcha error, attempt more
@@ -745,7 +750,7 @@ class Education //implements EducationInterface
             if ($loop_times < 3) {
                 $this->login();
             } else {
-                throw new \Exception("captcha recognition error, we had attempt 3 times, Please check program...", -8);
+                throw new CaptchaException("captcha recognition error, we had attempt 3 times, Please check program...");
             }
         }
     }

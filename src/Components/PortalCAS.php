@@ -3,15 +3,17 @@
  * @Author: Megoc
  * @Date: 2019-01-19 13:10:22
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-19 13:13:00
+ * @Last Modified time: 2019-02-13 11:09:36
  * @Email: megoc@megoc.org
  * @Description: Create by vscode
  */
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Interfaces\PortalCASInterface;
-use Symfony\Component\DomCrawler\Crawler;
 use Megoc\Ecjtu\Traits\EducationTrait;
+use Symfony\Component\DomCrawler\Crawler;
+use Megoc\Ecjtu\Interfaces\PortalCASInterface;
+use Megoc\Ecjtu\Exceptions\UnauthorizedException;
+use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class PortalCAS implements PortalCASInterface
 {
@@ -37,7 +39,7 @@ class PortalCAS implements PortalCASInterface
         }
     }
     /**
-     * service cas link
+     * 获取有效的cas认证链接
      *
      * @param string $service_cas_uri
      * @return string
@@ -69,21 +71,20 @@ class PortalCAS implements PortalCASInterface
     {
         if (empty($user['username']) || empty($user['password'])) {
             if (!$this->username || !$this->password) {
-                throw new \Exception("Username or password is needed to login system!", -1);
+                throw new UnauthorizedException("Username or password is needed to login system!");
             }
         } else {
             $this->set_user($user);
         }
 
         if ($this->cache_handler->has($this->uid())) {
-            $this->init_http_client_handler($this->uid());
-            return;
+            return $this->init_http_client_handler($this->uid());
         }
 
         $response = $this->a_client->get('cas/login');
         $html = $response->getBody()->getContents();
         /**
-         * get lt token
+         * 获取lt token
          */
         try {
             $crawler = new Crawler($html);
@@ -92,12 +93,12 @@ class PortalCAS implements PortalCASInterface
             throw new \Exception("get lt token failed!", -1);
         }
         /**
-         * get encrypt password
+         * 获取加密后的密码
          */
         $enc_password = $this->encrypted_password($this->password);
         $service_cas_url = $this->service_name2service_uri('portal');
         /**
-         * send authority request
+         * 发送post请求
          */
         $response = $this->a_client->post('cas/login', [
             'form_params' => [
@@ -114,7 +115,7 @@ class PortalCAS implements PortalCASInterface
         $html = $response->getBody()->getContents();
 
         if (preg_match('/错误的用户名或密码/is', $html)) {
-            throw new \Exception("Username or password is incorrected!", -1);
+            throw new AccountIncorrectException();
         }
 
         $cookies = $response->getHeader('Set-Cookie');
@@ -125,7 +126,7 @@ class PortalCAS implements PortalCASInterface
         $this->init_http_client_handler($this->uid());
     }
     /**
-     * get encrpted password
+     * 获取加密的密码
      *
      * @param string $password
      * @return string
@@ -148,7 +149,7 @@ class PortalCAS implements PortalCASInterface
         return empty($jsonArr['passwordEnc']) ? : $jsonArr['passwordEnc'];
     }
     /**
-     * get service authority url by name
+     * 通过服务名称获取cas认证链接
      *
      * @param string $service_name
      * @return string

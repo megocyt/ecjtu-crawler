@@ -3,22 +3,25 @@
  * @Author: Megoc 
  * @Date: 2019-01-17 09:37:42 
  * @Last Modified by: Megoc
- * @Last Modified time: 2019-01-17 15:11:34
+ * @Last Modified time: 2019-02-13 12:08:31
  * @E-mail: megoc@megoc.org 
  * @Description: create by vscode 
  */
 
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Interfaces\ElectiveInterface;
 use GuzzleHttp\Client;
-use Symfony\Component\Cache\Simple\FilesystemCache;
 use GuzzleHttp\Cookie\CookieJar;
 use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
+use Megoc\Ecjtu\Traits\EducationTrait;
+use GuzzleHttp\Exception\ServerException;
 use Symfony\Component\DomCrawler\Crawler;
 use GuzzleHttp\Exception\RequestException;
-use GuzzleHttp\Exception\ServerException;
-use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Exceptions\CaptchaException;
+use Megoc\Ecjtu\Interfaces\ElectiveInterface;
+use Megoc\Ecjtu\Exceptions\UnauthorizedException;
+use Symfony\Component\Cache\Simple\FilesystemCache;
+use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Elective implements ElectiveInterface
 {
@@ -125,10 +128,10 @@ class Elective implements ElectiveInterface
     /**
      * public course list
      *
-     * @param string $page
+     * @param int $page
      * @return array
      */
-    public function public_course_list($page = '')
+    public function public_course_list($page = 1)
     {
         $uri = 'commonXK/commonXK_getCoureTeachTask.action?currentPage=' . $page;
 
@@ -298,15 +301,14 @@ class Elective implements ElectiveInterface
     {
         if (empty($user['username']) || empty($user['password'])) {
             if (!$this->username || !$this->password) {
-                throw new \Exception("Username or password is needed to login system!", -1);
+                throw new UnauthorizedException("Username or password is needed to login system!");
             }
         } else {
             $this->set_user($user);
         }
 
         if ($this->cache_handler->has($this->uid())) {
-            $this->init_http_client_handler($this->uid());
-            return;
+            return $this->init_http_client_handler($this->uid());
         }
 
         /**
@@ -352,14 +354,12 @@ class Elective implements ElectiveInterface
              */
             if (!preg_match('/如何才能使用微信扫一扫登录/is', $html)) {
                 $this->cache_handler->set($this->uid(), $cookies_string, 900);
-                $this->init_http_client_handler($this->uid());
-
-                return;
+                return $this->init_http_client_handler($this->uid());
             }
         }
 
         if (preg_match('/用户名或密码错误/is', $html)) {
-            throw new \Exception("Username or password is incorrected!", -4);
+            throw new AccountIncorrectException();
         }
 
         /**
@@ -372,7 +372,7 @@ class Elective implements ElectiveInterface
             if ($loop_times < 3) {
                 $this->login();
             } else {
-                throw new \Exception("captcha recognition error, we had attempt $loop_times times, Please check program...", -8);
+                throw new CaptchaException("captcha recognition error, we had attempt 3 times, Please check program...");
             }
         }
     }
