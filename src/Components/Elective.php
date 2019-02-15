@@ -354,9 +354,7 @@ class Elective implements ElectiveInterface
              */
             if (!preg_match('/如何才能使用微信扫一扫登录/is', $html)) {
                 $this->cache_handler->set($this->uid(), $cookies_string, 900);
-                $this->init_http_client_handler($this->uid());
-
-                return;
+                return $this->init_http_client_handler($this->uid());
             }
         }
 

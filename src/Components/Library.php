@@ -175,8 +175,7 @@ class Library implements LibraryInterface
         }
 
         if (!$cas_link) {
-            $this->init_http_client_handler($uid);
-            return;
+            return $this->init_http_client_handler($uid);
         }
 
         $response = $this->a_client->get($cas_link);

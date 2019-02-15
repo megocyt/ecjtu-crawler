@@ -128,8 +128,7 @@ trait EducationTrait
         ]);
 
         if (!$uid) {
-            $this->auth_client = $this->a_client;
-            return;
+            return $this->auth_client = $this->a_client;
         }
 
         if ($this->cache_handler->has($uid)) {
