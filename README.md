@@ -12,19 +12,22 @@
 - How use
 
 ```php
+// 所有组件都通过数组 $user = [
+//     'username' => 'your username',
+//     'password' => 'your password',
+// ] 形式传递登录信息，你可以在实例化时传递，也可以通过实例后的对象手动调用login方法完成登录操作。
+// 示例代码
 $educaiton = new Megoc\Ecjtu\Components\Education([
-    'username'       => 'student_id',
-    'jwxt_password'  => 'education manager system password',
+    'username' => 'your username',
+    'password' => 'your password',
 ]);
 
 // 获取2018.1学期的成绩
 $score = $educaiton->score('2018.1');
 var_dump($score);
-// 获取2018.1的选课
-$course = $educaiton->course('2018.1');
-var_dump($course);
 
 // and so on...
+
 ```
 
 ## 组件接口及返回数据
