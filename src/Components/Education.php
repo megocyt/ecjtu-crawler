@@ -213,6 +213,12 @@ class Education implements EducationInterface
         $schedules = ['Mon' => [], 'Tues' => [], 'Wed' => [], 'Thur' => [], 'Fri' => [], 'Sat' => [], 'Sun' => [], ];
         $weeks = ['jieci', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', ];
 
+        try {
+            $term = $crawler->filter('select#term option[selected]')->attr('value');
+        } catch (\Throwable $th) {
+            $term = $term;
+        }
+
         $crawler->filter('#courseSche tr')->each(function (Crawler $node, $i) use (&$schedules, &$weeks) {
             if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
 
@@ -262,7 +268,10 @@ class Education implements EducationInterface
 
         });
 
-        return $schedules;
+        return [
+            'term' => $term,
+            'lists' => $schedules
+        ];
     }
     /**
      * week schedule
@@ -281,10 +290,21 @@ class Education implements EducationInterface
         $week_schedules = ['Mon' => [], 'Tues' => [], 'Wed' => [], 'Thur' => [], 'Fri' => [], 'Sat' => [], 'Sun' => [], ];
         $weeks = ['jieci', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', ];
         $t = [];
+
+        try {
+            // 如果可以，从页面获取学期、周次信息
+            $term = $crawler->filter('select#term option[selected]')->attr('value');
+            $week = $crawler->filter('select#week option[selected]')->attr('value');
+        } catch (\Throwable $th) {
+
+        }
+
+        // 处理课表页面，提取信息
         $crawler->filter('table#courseSche tr')->each(function (Crawler $node, $i) use (&$week_schedules, &$weeks, &$t) {
             if ($i == 0) return;
 
             $node->filter('td')->each(function (Crawler $node, $i) use (&$week_schedules, &$weeks, &$t) {
+                // 过滤无用的字符
                 $text = trim($node->html());
                 $text = preg_replace('/\n*/is', '', $text);
                 $text = preg_replace('/(	)*/is', '', $text);
@@ -314,7 +334,11 @@ class Education implements EducationInterface
             });
         });
 
-        return $week_schedules;
+        return [
+            'week' => $week,
+            'term' => $term,
+            'lists' => $week_schedules
+        ];
     }
     /**
      * daily
