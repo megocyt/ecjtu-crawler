@@ -73,13 +73,13 @@ class Portal implements PortalInterface
                 $list[] = [
                     'create_at' => date('Y-m-d H:i:s', substr($v['CREATE_TIME']['time'], 0, -3)),
                     'create_user' => $v['USER_NAME'],
-                    'is_top' => $v['IS_TOP'],
+                    'is_top' => $v['IS_TOP'] ?? 0,
                     'resource_id' => $v['RESOURCE_ID'],
                     'belong_unit' => $v['BELONG_UNIT_NAME'],
                     'type_name' => $v['TYPE_NAME'],
                     'is_read' => $v['IS_READ'],
                     'title' => $v['PIM_TITLE'],
-                    'content' => $v['PIM_CONTENT'],
+                    'content' => $v['PIM_CONTENT'] ?? '',
                     'views' => $v['VIEW_COUNT'],
                 ];
             }
