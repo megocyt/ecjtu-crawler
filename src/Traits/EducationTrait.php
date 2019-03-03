@@ -1,5 +1,5 @@
 <?php
-/*
+ /*
  * @Author: Megoc
  * @Date: 2019-01-19 11:43:08
  * @Last Modified by: Megoc
@@ -82,6 +82,32 @@ trait EducationTrait
     {
         $this->cache_handler->delete($this->uid());
     }
+    /**
+     * 获取有效的学期
+     *
+     * @return array
+     */
+    public function terms()
+    {
+        if (!$this->username) {
+            return [];
+        }
+
+        $grade = substr($this->username, 0, 4);
+        $terms = [];
+
+        for ($i = $grade; $i <= date('Y'); $i++) {
+
+            if ($i != date('Y')) {
+                $terms[] = $i . '.1';
+                $terms[] = $i . '.2';
+            } elseif ($i == date('Y') && date('m') >= 1) {
+                $terms[] = $i . '.1';
+            }
+        }
+
+        return $terms;
+    }
 
     /**
      * init cache handler
@@ -121,7 +147,7 @@ trait EducationTrait
     {
         $this->a_client = new Client([
             'base_uri' => self::BASE_URI,
-            'timeout' => 5,
+            'timeout' => 10,
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
             ],
@@ -134,7 +160,7 @@ trait EducationTrait
         if ($this->cache_handler->has($uid)) {
             $this->auth_client = new Client([
                 'base_uri' => self::BASE_URI,
-                'timeout' => 5,
+                'timeout' => 10,
                 'headers' => [
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
                     'Cookie' => $this->cache_handler->get($uid),
@@ -144,5 +170,4 @@ trait EducationTrait
             throw new CacheException("Can not find authoritied sessionid from local cache!", -30);
         }
     }
-
 }
