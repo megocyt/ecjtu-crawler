@@ -1,5 +1,5 @@
 <?php
-/* 
+ /* 
  * @Author: Megoc 
  * @Date: 2019-01-14 09:44:39 
  * @Last Modified by: Megoc
@@ -44,7 +44,6 @@ class Education implements EducationInterface
         if (!empty($user['username']) && !empty($user['password'])) {
             $this->login($user);
         }
-
     }
     /**
      * score
@@ -176,8 +175,8 @@ class Education implements EducationInterface
             });
 
             if (!empty($td)) {
-                $username = $username ? : $td[1];
-                $student_id = $student_id ? : $td[2];
+                $username = $username ?: $td[1];
+                $student_id = $student_id ?: $td[2];
 
                 $tr[] = [
                     'scientific' => $td[2],
@@ -242,15 +241,28 @@ class Education implements EducationInterface
                 array_pop($course);
 
                 if (count($course) % 3 != 0) {
-                    preg_match('/(.*) @(.*)/is', $course[1], $str1);
-                    preg_match('/(.*) (.*)/is', $course[2], $str2);
-                    $scheduls[$day][] = [
-                        'course_name' => $course[0],
-                        'teacher_name' => trim($str1[1]),
-                        'address' => trim($str1[2]),
-                        'weeek_span' => trim($str2[1]),
-                        'class_span' => trim($str2[2]),
-                    ];
+                    if (count($course) == 2) {
+                        preg_match('/(.*)/is', $course[0], $str1);
+                        $str2 = explode(" ", str_replace('  ',' ',  $course[1]));
+                        $schedule = [
+                            'course_name' => $course[0],
+                            'teacher_name' => trim($str2[0]),
+                            'address' => $str1[2] ?? '',
+                            'weeek_span' => trim($str2[1]),
+                            'class_span' => trim($str2[2]),
+                        ];
+                    } else {
+                        preg_match('/(.*) @(.*)/is', $course[1], $str1);
+                        preg_match('/(.*) (.*)/is', $course[2], $str2);
+                        $schedule = [
+                            'course_name' => $course[0],
+                            'teacher_name' => trim($str1[1]),
+                            'address' => trim($str1[2]),
+                            'weeek_span' => trim($str2[1]),
+                            'class_span' => trim($str2[2]),
+                        ];
+                    }
+                    $schedules[$day][] = $schedule;
                 } else {
                     for ($i = 0; $i < count($course) / 3; $i++) {
                         preg_match('/(.*) @(.*)/is', $course[$i * 3 + 1], $str1);
@@ -265,7 +277,6 @@ class Education implements EducationInterface
                     }
                 }
             });
-
         });
 
         return [
@@ -295,9 +306,7 @@ class Education implements EducationInterface
             // 如果可以，从页面获取学期、周次信息
             $term = $crawler->filter('select#term option[selected]')->attr('value');
             $week = $crawler->filter('select#week option[selected]')->attr('value');
-        } catch (\Throwable $th) {
-
-        }
+        } catch (\Throwable $th) { }
 
         // 处理课表页面，提取信息
         $crawler->filter('table#courseSche tr')->each(function (Crawler $node, $i) use (&$week_schedules, &$weeks, &$t) {
@@ -350,7 +359,7 @@ class Education implements EducationInterface
     {
         $response = $this->auth_client->post('Schedule/Weekcalendar_getTodayWeekcalendar.action', [
             'form_params' => [
-                'date' => $date ? : date('Y-m-d'),
+                'date' => $date ?: date('Y-m-d'),
             ],
         ]);
         $html = $response->getBody()->getContents();
@@ -590,7 +599,6 @@ class Education implements EducationInterface
                 } else {
                     $number[$title[$i]] = trim($node->text());
                 }
-
             });
             ksort($number);
             $numbers['term'] = $number['xueqi'];
@@ -876,7 +884,7 @@ class Education implements EducationInterface
      */
     protected static function is_passed(string $a_score = '', string $b_score = '', string $c_score = '')
     {
-        $score = $c_score ? : $b_score ? : $a_score;
+        $score = $c_score ?: $b_score ?: $a_score;
 
         if (is_numeric($score)) {
             return $score < 60 ? 0 : 1;
@@ -888,5 +896,4 @@ class Education implements EducationInterface
             }
         }
     }
-
 }
