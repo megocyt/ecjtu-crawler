@@ -11,14 +11,14 @@
 namespace Megoc\Ecjtu\Components;
 
 use Megoc\Ecjtu\Components\PortalCAS;
-use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Traits\HelperTraits;
 use Megoc\Ecjtu\Interfaces\PortalInterface;
 use Megoc\Ecjtu\Exceptions\UnauthorizedException;
 use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Portal implements PortalInterface
 {
-    use EducationTrait;
+    use HelperTraits;
     /**
      * server url
      */

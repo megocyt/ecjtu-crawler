@@ -13,7 +13,7 @@ namespace Megoc\Ecjtu\Components;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
-use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Traits\HelperTraits;
 use GuzzleHttp\Exception\ServerException;
 use Symfony\Component\DomCrawler\Crawler;
 use GuzzleHttp\Exception\RequestException;
@@ -25,7 +25,7 @@ use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Elective implements ElectiveInterface
 {
-    use EducationTrait;
+    use HelperTraits;
     /**
      * server base uri
      */

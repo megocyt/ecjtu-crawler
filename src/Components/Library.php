@@ -10,7 +10,7 @@
 namespace Megoc\Ecjtu\Components;
 
 use GuzzleHttp\Client;
-use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Traits\HelperTraits;
 use GuzzleHttp\Exception\ClientException;
 use Symfony\Component\DomCrawler\Crawler;
 use GuzzleHttp\Exception\RequestException;
@@ -22,7 +22,7 @@ use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Library implements LibraryInterface
 {
-    use EducationTrait;
+    use HelperTraits;
     /**
      * base uri
      */

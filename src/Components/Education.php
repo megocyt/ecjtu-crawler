@@ -13,7 +13,7 @@ namespace Megoc\Ecjtu\Components;
 use GuzzleHttp\Client;
 use GuzzleHttp\Cookie\CookieJar;
 use Megoc\Ecjtu\CodeOCR\EcjtuOCR;
-use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Traits\HelperTraits;
 use Symfony\Component\DomCrawler\Crawler;
 use Megoc\Ecjtu\Exceptions\CacheException;
 use Megoc\Ecjtu\Exceptions\CaptchaException;
@@ -25,7 +25,7 @@ use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class Education implements EducationInterface
 {
-    use EducationTrait;
+    use HelperTraits;
     /**
      * education server base uri
      */

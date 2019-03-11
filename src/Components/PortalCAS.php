@@ -9,7 +9,7 @@
  */
 namespace Megoc\Ecjtu\Components;
 
-use Megoc\Ecjtu\Traits\EducationTrait;
+use Megoc\Ecjtu\Traits\HelperTraits;
 use Symfony\Component\DomCrawler\Crawler;
 use Megoc\Ecjtu\Interfaces\PortalCASInterface;
 use Megoc\Ecjtu\Exceptions\UnauthorizedException;
@@ -17,7 +17,7 @@ use Megoc\Ecjtu\Exceptions\AccountIncorrectException;
 
 class PortalCAS implements PortalCASInterface
 {
-    use EducationTrait;
+    use HelperTraits;
     /**
      * server base uri
      */

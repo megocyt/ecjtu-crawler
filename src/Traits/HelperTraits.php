@@ -14,7 +14,7 @@ use GuzzleHttp\Client;
 use Megoc\Ecjtu\Exceptions\CacheException;
 use Symfony\Component\Cache\Simple\FilesystemCache;
 
-trait EducationTrait
+trait HelperTraits
 {
     /**
      * username
@@ -169,5 +169,39 @@ trait EducationTrait
         } else {
             throw new CacheException("Can not find authoritied sessionid from local cache!", -30);
         }
+    }
+
+    /**
+     * curl helper
+     * 简易的发起http请求方法
+     *
+     * @param string $url
+     * @param array $options
+     * @return string
+     */
+    public static function curl($url,  $options = [])
+    {
+        $method = $options['method'] ?? 'get';
+
+        $client = new Client([
+            'timeout' => $options['timeout'] ?? 10,
+            'headers' => [
+                'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+            ],
+        ]);
+
+        $methods  = array('get', 'delete', 'head', 'options', 'patch', 'post', 'put');
+
+        $method = in_array(strtolower($method), $methods) ? strtolower($method) : 'get';
+
+        $response = $client->request($method, $url, [
+            'form_params' => $options['payload'] ?? [],
+            'headers' => $options['headers'] ?? [],
+            'verify' => false
+        ]);
+
+        $body = $response->getBody()->getContents();
+
+        return $body;
     }
 }
