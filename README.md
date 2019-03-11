@@ -109,7 +109,7 @@ curl -sS https://getcomposer.org/installer | php
 Next, run the Composer command to install the latest stable version of Ecjtu Crawler:
 
 ```bash
-php composer.phar require megoc/ecjtu
+php composer.phar require megoc/ecjtu-crawler
 ```
 
 After installing, you need to require Composer's autoloader:
