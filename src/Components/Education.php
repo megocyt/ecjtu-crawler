@@ -1036,12 +1036,58 @@ class Education implements EducationInterface
      * 教室课表
      *
      * @param string $room
+     * @param integer $week
+     * @param string $term
      * @param string $building
      * @return array
      */
-    public function teaching_building_room_schedule($room, $building = null)
+    public function teaching_building_room_schedule($room, $week = 1, $term = null, $building = null)
     {
-        // 
+        $query = array(
+            'classRoom' => $room,
+            'building' => $building,
+            'zhouci' => $week ?? 1,
+            'term' => $term,
+        );
+
+        if (!$query['term']) {
+            unset($query['term']);
+        }
+
+        $uri = 'Schedule/KSchedule_findClassUseCase.action';
+
+        $response = $this->auth_client->post($uri, [
+            'form_params' => $query
+        ]);
+
+        $html = $response->getBody()->getContents();
+
+        $schedule_table_arr = $this->scheduleTable2Array($html);
+        $schedules = [];
+
+        foreach ($schedule_table_arr as $day => $items) {
+            $schedules[$day] = [];
+
+            foreach ($items as $item) {
+                switch (count($item)) {
+                    case 4:
+                        $schedules[$day][] = [
+                            'class_name' => $item[0],
+                            'course_name' => $item[1],
+                            'class_span' => $item[2],
+                            'teacher_name' => $item[3],
+                        ];
+
+                        break;
+
+                    default:
+                        // 
+                        break;
+                }
+            }
+        }
+
+        return $schedules;
     }
     /**
      * 将课表按原表格样式转为数组形式
@@ -1071,13 +1117,12 @@ class Education implements EducationInterface
                 }, $tds));
 
                 // 剔除只有一个元素的数组，其实是一个干扰，无法通过替换等操作去除
-                return count($tds) == 1 ? [] : $tds;
+                return count($tds) == 1 ? [] : array_values($tds);
             });
 
             $schedule = array_values(array_filter($schedule_tmp, function ($var) {
                 return is_array($var);
             }));
-
             return $schedule;
         });
         // 剔除空数组
