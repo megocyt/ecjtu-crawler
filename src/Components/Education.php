@@ -897,4 +897,146 @@ class Education implements EducationInterface
             }
         }
     }
+    /**
+     * 下载课表
+     *
+     * @param string $term
+     * @return array|null
+     */
+    public function download_schedule($term = '')
+    {
+        $query = array(
+            'term' => $term,
+        );
+
+        $uri = 'Schedule/Schedule_download.action?' . http_build_query($query);
+
+        $response = $this->auth_client->get($uri);
+
+        if ($response->getStatusCode() != 200) {
+            return null;
+        }
+
+        return array(
+            'file_type' => join('', $response->getHeader('Content-Type')),
+            'file_name' => join('', $response->getHeader('Content-disposition')),
+            'file_stream' => $response->getBody()->getContents()
+        );
+    }
+    /**
+     * 下载班级名单
+     *
+     * @param string $class_id
+     * @return array|null
+     */
+    public function download_classmate($class_id = '')
+    {
+        $uri = 'infoQuery/class_print.action';
+        // 如果没有传入class_id，则默认获取当前登录账号的class_id
+        if (!$class_id) {
+            $profile = $this->profile();
+
+            $class_id = $profile['class_id'];
+        }
+        // 如果传入的参数长度为16，即学生在班编号，则默认截取前14位即班级编号
+        if (is_numeric($class_id) && strlen($class_id) == 16) {
+            $class_id = substr($class_id, 0, 14);
+        }
+
+        $response = $this->auth_client->post($uri, [
+            'form_params' => [
+                // 'depInfo.departMent' => '土木建筑学院',
+                // 'gra.grade' => '2018',
+                'classInfo.classID' => $class_id,
+            ],
+
+        ]);
+
+        if ($response->getStatusCode() != 200) {
+            return null;
+        }
+
+        return array(
+            'file_type' => join('', $response->getHeader('Content-Type')),
+            'file_name' => join('', $response->getHeader('Content-disposition')),
+            'file_stream' => $response->getBody()->getContents()
+        );
+    }
+    /**
+     * 学校教学楼列表
+     *
+     * @return array
+     */
+    public function teaching_buildings()
+    {
+        $uri = 'Schedule/ClassRoom_iniClassRoom.action?item=0204';
+
+        $response = $this->auth_client->get($uri);
+
+        $html = $response->getBody()->getContents();
+
+        $crawler = new Crawler($html);
+
+        $buildings = [];
+
+        $buildings = $crawler->filter('#classinfo li a')->each(function (Crawler $node, $n) {
+            try {
+                return trim($node->attr('title'));
+            } catch (\Throwable $th) {
+                return null;
+            }
+        });
+
+        return $buildings;
+    }
+
+    public function teaching_building_rooms($building)
+    {
+        $query = array(
+            'building' => $building,
+            'roomType' => '',
+        );
+
+        $uri = 'Schedule/ClassRoom_getClassRoomInfo.action?' . http_build_query($query);
+
+        $response = $this->auth_client->get($uri);
+
+        $html = $response->getBody()->getContents();
+
+        $crawler = new Crawler($html);
+
+        $rooms = [];
+
+        $rooms = $crawler->filter('#data-center .reinfo .table_border tr')->each(function (Crawler $node, $n) {
+            if ($n == 0) {
+                return null;
+            }
+
+            $room_tmp = $node->filter('td')->each(function (Crawler $nodec, $nc) {
+                try {
+                    return trim($nodec->text());
+                } catch (\Throwable $th) {
+                    return null;
+                }
+            });
+
+            $room = [];
+
+            if (count($room_tmp) == 5) {
+                $room = [
+                    'room_name' => $room_tmp[0],
+                    'building_name' => $room_tmp[1],
+                    'room_type' => $room_tmp[2],
+                    'room_seats' => $room_tmp[3],
+                    'room_eaxm_seats' => $room_tmp[4],
+                ];
+            }
+
+            return $room;
+        });
+        // 剔除空数组
+        $rooms = array_values(array_filter($rooms));
+
+        return $rooms;
+    }
 }
