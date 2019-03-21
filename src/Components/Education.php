@@ -205,79 +205,68 @@ class Education implements EducationInterface
     public function schedule(string $term = '')
     {
         $uri = 'Schedule/Schedule_getUserSchedume.action';
+
         $uri .= $term ? '?term=' . $term : '';
+
         $response = $this->auth_client->get($uri);
+
         $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-        $schedules = ['Mon' => [], 'Tues' => [], 'Wed' => [], 'Thur' => [], 'Fri' => [], 'Sat' => [], 'Sun' => [], ];
-        $weeks = ['jieci', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', ];
 
-        try {
-            $term = $crawler->filter('select#term option[selected]')->attr('value');
-        } catch (\Throwable $th) {
-            $term = $term;
-        }
+        $schedule_table_arr = $this->scheduleTable2Array($html);
 
-        $crawler->filter('#courseSche tr')->each(function (Crawler $node, $i) use (&$schedules, &$weeks) {
-            if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
+        $schedules = [];
 
-            if ($i == 0) return;
+        // 转为需要的数据返回格式
+        foreach ($schedule_table_arr as $day => $items) {
+            $schedules[$day] = [];
+            foreach ($items as $span => $item) {
+                switch (count($item)) {
+                    case 3:
+                        $spans1 =  explode(' ', $item[1]);
+                        $spans2 = explode(' ', str_replace('  ', ' ', $item[2]));
 
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$schedules, &$weeks) {
-                $text = trim($node->html());
-                $text = preg_replace('/(　)*/is', '', $text);
-                $day = $weeks[$i];
-
-                if (!$text) {
-                    return;
-                }
-
-                if (preg_match('/^\d*-\d*$/is', $text)) {
-                    $class_span = $text;
-                    return;
-                }
-
-                $course = explode('<br>', $text);
-                array_pop($course);
-
-                if (count($course) % 3 != 0) {
-                    if (count($course) == 2) {
-                        preg_match('/(.*)/is', $course[0], $str1);
-                        $str2 = explode(" ", str_replace('  ', ' ',  $course[1]));
-                        $schedule = [
-                            'course_name' => $course[0],
-                            'teacher_name' => trim($str2[0]),
-                            'address' => $str1[2] ?? '',
-                            'weeek_span' => trim($str2[1]),
-                            'class_span' => trim($str2[2]),
-                        ];
-                    } else {
-                        preg_match('/(.*) @(.*)/is', $course[1], $str1);
-                        preg_match('/(.*) (.*)/is', $course[2], $str2);
-                        $schedule = [
-                            'course_name' => $course[0],
-                            'teacher_name' => trim($str1[1]),
-                            'address' => trim($str1[2]),
-                            'weeek_span' => trim($str2[1]),
-                            'class_span' => trim($str2[2]),
-                        ];
-                    }
-                    $schedules[$day][] = $schedule;
-                } else {
-                    for ($i = 0; $i < count($course) / 3; $i++) {
-                        preg_match('/(.*) @(.*)/is', $course[$i * 3 + 1], $str1);
-                        preg_match('/(.*) (.*)/is', $course[$i * 3 + 2], $str2);
                         $schedules[$day][] = [
-                            'course_name' => $course[0],
-                            'teacher_name' => trim($str1[1]),
-                            'address' => trim($str1[2]),
-                            'weeek_span' => trim($str2[1]),
-                            'class_span' => trim($str2[2]),
+                            'course_name' => trim($item[0]),
+                            'teacher_name' => trim($spans1[0]),
+                            'address' => trim($spans1[1]),
+                            'week_span' => trim($spans2[0]),
+                            'class_span' => trim($spans2[1]),
                         ];
-                    }
+                        break;
+
+                    case 2:
+                        // 没有上课地点的课程处理
+                        $spans = explode(' ', str_replace('  ', ' ', $item[1]));
+
+                        $schedules[$day][] = [
+                            'course_name' => trim($item[0]),
+                            'teacher_name' => trim($spans[0]),
+                            'address' => null,
+                            'week_span' => trim($spans[1]),
+                            'class_span' => trim($spans[2]),
+                        ];
+                        break;
+
+                    default:
+                        // 处理可能存在单双周情况，或者分周次上课情况
+                        if (count($item) % 3 == 0) {
+                            for ($i = 0; $i < count($item) / 3; $i++) {
+                                $spans1 =  explode(' ', $item[$i * 3 + 1]);
+                                $spans2 = explode(' ', str_replace('  ', ' ', $item[$i * 3 + 2]));
+
+                                $schedules[$day][] = [
+                                    'course_name' => trim($item[$i * 3]),
+                                    'teacher_name' => trim($spans1[0]),
+                                    'address' => trim($spans1[1]),
+                                    'week_span' => trim($spans2[0]),
+                                    'class_span' => trim($spans2[1]),
+                                ];
+                            }
+                        }
+                        break;
                 }
-            });
-        });
+            }
+        }
 
         return [
             'term' => $term,
@@ -287,66 +276,65 @@ class Education implements EducationInterface
     /**
      * 周历
      *
-     * @param string $week
+     * @param string|int $week
      * @param string $term
      * @return array
      */
     public function week_schedule(string $week = '', string $term = '')
     {
         $uri = 'Schedule/Weekcalendar_getStudentWeekcalendar.action?week=' . $week;
+
         $uri .= $term ? '&term=' . $term : '';
+
         $response = $this->auth_client->get($uri);
+
         $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-        $week_schedules = ['Mon' => [], 'Tues' => [], 'Wed' => [], 'Thur' => [], 'Fri' => [], 'Sat' => [], 'Sun' => [], ];
-        $weeks = ['jieci', 'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun', ];
-        $t = [];
 
-        try {
-            // 如果可以，从页面获取学期、周次信息
-            $term = $crawler->filter('select#term option[selected]')->attr('value');
-            $week = $crawler->filter('select#week option[selected]')->attr('value');
-        } catch (\Throwable $th) { }
+        $schedule_table_arr = $this->scheduleTable2Array($html);
 
-        // 处理课表页面，提取信息
-        $crawler->filter('table#courseSche tr')->each(function (Crawler $node, $i) use (&$week_schedules, &$weeks, &$t) {
-            if ($i == 0) return;
+        $schedules = [];
 
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$week_schedules, &$weeks, &$t) {
-                // 过滤无用的字符
-                $text = trim($node->html());
-                $text = preg_replace('/\n*/is', '', $text);
-                $text = preg_replace('/(	)*/is', '', $text);
-                $text = preg_replace('/(　)*/is', '', $text);
-                $day = $weeks[$i];
+        // 转为需要的数据返回格式
+        foreach ($schedule_table_arr as $day => $items) {
+            $schedules[$day] = [];
+            foreach ($items as $span => $item) {
+                switch (count($item)) {
+                    case 4:
+                        $spans1 = explode(' ', $item[1]);
 
-                if (strlen($text) == 18) {
-                    return;
+                        $schedules[$day][] = [
+                            'address' => $item[2],
+                            'class_name' => $item[3],
+                            'course_name' => $item[0],
+                            'teacher_name' => $spans1[0],
+                            'type' => $spans1[1],
+                        ];
+                        break;
+
+                    case 3:
+                        // 没有上课地点的课程处理
+                        $spans1 = explode(' ', $item[1]);
+
+                        $schedules[$day][] = [
+                            'address' => null,
+                            'class_name' => $item[3],
+                            'course_name' => $item[0],
+                            'teacher_name' => $spans1[0],
+                            'type' => $spans1[1],
+                        ];
+                        break;
+
+                    default:
+                        // 
+                        break;
                 }
-
-                if (preg_match('/^\d*-\d*$/is', $text)) {
-                    $class_span = $text;
-                    return;
-                }
-
-                $course = explode('<br>', $text);
-                $str1 = explode(' ', $course[1]);
-                $course = [
-                    'course_name' => $course[0],
-                    'teacher_name' => trim($str1[0]),
-                    'type' => trim(mb_substr($str1[1], 1)),
-                    'address' => $course[2],
-                    'class_name' => $course[3],
-                ];
-                ksort($course);
-                $week_schedules[$day][] = $course;
-            });
-        });
+            }
+        }
 
         return [
             'week' => $week,
             'term' => $term,
-            'lists' => $week_schedules
+            'lists' => $schedules
         ];
     }
     /**
@@ -989,7 +977,12 @@ class Education implements EducationInterface
 
         return $buildings;
     }
-
+    /**
+     * 教学楼教室列表
+     *
+     * @param string $building
+     * @return array
+     */
     public function teaching_building_rooms($building)
     {
         $query = array(
@@ -1038,5 +1031,75 @@ class Education implements EducationInterface
         $rooms = array_values(array_filter($rooms));
 
         return $rooms;
+    }
+    /**
+     * 教室课表
+     *
+     * @param string $room
+     * @param string $building
+     * @return array
+     */
+    public function teaching_building_room_schedule($room, $building = null)
+    {
+        // 
+    }
+    /**
+     * 将课表按原表格样式转为数组形式
+     *
+     * @param string $html
+     * @return array|null
+     */
+    private function scheduleTable2Array($html)
+    {
+        $crawler = new Crawler($html);
+
+        $schedules = $crawler->filter('#courseSche tr')->each(function (Crawler $node, $n) {
+            if ($n == 0) {
+                return null;
+            }
+
+            $schedule_tmp = $node->filter('td')->each(function (Crawler $nodec, $nc) {
+                if ($nc == 0) {
+                    return $nodec->text();
+                }
+
+                $td = $nodec->html();
+
+                $tds = explode('<br>', trim($td));
+                $tds = array_filter(array_map(function ($var) {
+                    return trim($var);
+                }, $tds));
+
+                // 剔除只有一个元素的数组，其实是一个干扰，无法通过替换等操作去除
+                return count($tds) == 1 ? [] : $tds;
+            });
+
+            $schedule = array_values(array_filter($schedule_tmp, function ($var) {
+                return is_array($var);
+            }));
+
+            return $schedule;
+        });
+        // 剔除空数组
+        $schedules = array_values(array_filter($schedules));
+
+        $maps = [
+            'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun',
+        ];
+
+        // 将原始数组转为day => schedule形式
+        $schedules_assoc = [];
+        foreach ($schedules[0] as $key => $value) {
+            $schedules_assoc[$maps[$key]] = [
+                $schedules[0][$key],
+                $schedules[1][$key],
+                $schedules[2][$key],
+                $schedules[3][$key],
+                $schedules[4][$key],
+                $schedules[5][$key],
+            ];
+        }
+
+        return $schedules_assoc;
     }
 }
