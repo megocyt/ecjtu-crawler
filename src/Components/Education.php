@@ -32,7 +32,7 @@ class Education implements EducationInterface
     const BASE_URI = 'http://jwxt.ecjtu.jx.cn/';
 
     /**
-     * construct
+     * 实例化对象
      *
      * @param array $user
      */
@@ -46,7 +46,7 @@ class Education implements EducationInterface
         }
     }
     /**
-     * score
+     * 成绩信息
      *
      * @param string $term
      * @return array
@@ -111,7 +111,7 @@ class Education implements EducationInterface
         }
     }
     /**
-     * credit
+     * 学分信息
      *
      * @return array
      */
@@ -147,7 +147,7 @@ class Education implements EducationInterface
         return $credit;
     }
     /**
-     * second credit score
+     * 第二课堂学分
      *
      * @return array
      */
@@ -197,7 +197,7 @@ class Education implements EducationInterface
         return $second_credit;
     }
     /**
-     * schedule
+     * 课表
      *
      * @param string $term
      * @return array
@@ -243,7 +243,7 @@ class Education implements EducationInterface
                 if (count($course) % 3 != 0) {
                     if (count($course) == 2) {
                         preg_match('/(.*)/is', $course[0], $str1);
-                        $str2 = explode(" ", str_replace('  ',' ',  $course[1]));
+                        $str2 = explode(" ", str_replace('  ', ' ',  $course[1]));
                         $schedule = [
                             'course_name' => $course[0],
                             'teacher_name' => trim($str2[0]),
@@ -285,7 +285,7 @@ class Education implements EducationInterface
         ];
     }
     /**
-     * week schedule
+     * 周历
      *
      * @param string $week
      * @param string $term
@@ -350,7 +350,7 @@ class Education implements EducationInterface
         ];
     }
     /**
-     * daily
+     * 日历
      *
      * @param string $date
      * @return void
@@ -385,7 +385,7 @@ class Education implements EducationInterface
         return $daily;
     }
     /**
-     * exam
+     * 考试安排
      *
      * @param string $term
      * @return array
@@ -424,7 +424,7 @@ class Education implements EducationInterface
         return $exams;
     }
     /**
-     * bexam
+     * 补考安排
      *
      * @param string $term
      * @return array
@@ -459,7 +459,7 @@ class Education implements EducationInterface
         return $exams;
     }
     /**
-     * experiment
+     * 实验安排
      *
      * @param string $term
      * @return array
@@ -493,7 +493,7 @@ class Education implements EducationInterface
         return $experiments;
     }
     /**
-     * class mates
+     * 班级名单
      *
      * @param string $class_id
      * @return array
@@ -535,7 +535,7 @@ class Education implements EducationInterface
         return $mates;
     }
     /**
-     * profile
+     * 个人资料
      *
      * @return void
      */
@@ -570,7 +570,7 @@ class Education implements EducationInterface
         return $profile;
     }
     /**
-     * class number
+     * 小班序号
      *
      * @param string $term
      * @return array
@@ -609,7 +609,7 @@ class Education implements EducationInterface
         return $numbers;
     }
     /**
-     * class list
+     * 班级列表
      *
      * @param string $college
      * @param string $grade
@@ -647,7 +647,7 @@ class Education implements EducationInterface
         return $class_list;
     }
     /**
-     * college list
+     * 学院列表
      *
      * @return array
      */
@@ -667,7 +667,7 @@ class Education implements EducationInterface
         return $college_list;
     }
     /**
-     * cas authority login
+     * CAS认证
      *
      * @param string $uid
      * @param string $cas_link
@@ -714,7 +714,8 @@ class Education implements EducationInterface
         $this->init_http_client_handler($uid);
     }
     /**
-     * login
+     * 登录系统
+     * 传入用账号信息，模拟登录教务系统
      *
      * @param array $user
      * @return void
@@ -787,7 +788,7 @@ class Education implements EducationInterface
         }
     }
     /**
-     * info
+     * 教务系统首页信息
      *
      * @return array
      */
@@ -806,7 +807,7 @@ class Education implements EducationInterface
         ];
     }
     /**
-     * notifications
+     * 教务系统通知列表
      *
      * @param integer $page
      * @return array
@@ -833,10 +834,10 @@ class Education implements EducationInterface
         return $notifications;
     }
     /**
-     * notification detail
+     * 通知详细内容
      *
      * @param string $resource_id
-     * @return void
+     * @return array
      */
     public function notification_detail(string $resource_id = '')
     {
@@ -877,7 +878,7 @@ class Education implements EducationInterface
         ];
     }
     /**
-     * check score pass status
+     * 检查分数是否及格
      *
      * @param string $score
      * @return boolean
