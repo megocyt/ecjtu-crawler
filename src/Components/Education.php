@@ -39,6 +39,7 @@ class Education implements EducationInterface
     public function __construct(array $user = [])
     {
         $this->init_cache_handler('jwxt.ecjtu.jx.cn');
+
         $this->init_http_client_handler();
 
         if (!empty($user['username']) && !empty($user['password'])) {
@@ -54,60 +55,66 @@ class Education implements EducationInterface
     public function score(string $term = '')
     {
         $response = $this->auth_client->get('scoreQuery/stuScoreQue_getStuScore.action');
+
         $html = $response->getBody()->getContents();
 
-        if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
-            throw new UnassessException();
-        }
+        try {
+            if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
+                throw new UnassessException();
+            }
 
-        $crawler = new Crawler($html);
-        $terms = [];
-        $crawler->filter('.s_term li')->each(function (Crawler $node, $i) use (&$terms) {
-            $terms[] = $node->text();
-        });
-        $scores = [];
-        $crawler->filter('ul.term_score')->each(function (Crawler $node, $i) use (&$scores) {
-            $score = [];
-            $title = ['xq', 'course_name', 'course_require', 'check_type', 'credit', 'score', 'score_b', 'score_c', ];
-
-            $node->filter('li')->each(function (Crawler $node, $i) use (&$score, &$title) {
-                if ($i == 1) {
-                    preg_match('/【(.*)】(.*)/is', $node->text(), $match);
-                    $score['course_id'] = $match[1];
-                    $score[$title[$i]] = trim($match[2]);
-                } else {
-                    $score[$title[$i]] = $node->text();
+            $crawler = new Crawler($html);
+            // 获取数据
+            $items = $crawler->filter('.s_termScore ul')->each(function (Crawler $node, $n) {
+                if ($n == 0) {
+                    return null;
                 }
+
+                $item = $node->filter('li')->each(function (Crawler $nodec, $nc) {
+                    return trim($nodec->text());
+                });
+
+                return $item;
             });
-            $score['is_passed'] = self::is_passed($score['score'], $score['score_b'], $score['score_c']);
-            $scores[] = $score;
-        });
+            $items = array_values(array_filter($items));
 
-        $scores_tmp = [];
-        $unexcept_str_rules = [
-            '/　　*/is',
-            '/  */is',
-        ];
-        foreach ($scores as $key => $value) {
-            $term_t = $value['xq'];
-            unset($value['xq']);
-            ksort($value);
-            $value['course_name'] = preg_replace($unexcept_str_rules, '', $value['course_name']);
-            $scores_tmp[$term_t][] = $value;
-        }
+            // 按需要 key=>value 组织数据
+            $items_assoc_tmp = [];
 
-        $t = [];
-        foreach ($scores_tmp as $k => $v) {
-            $t[$k] = [
-                'term' => $k,
-                'lists' => $v,
-            ];
-        }
+            foreach ($items as $item) {
+                preg_match('/【(\d*)】(.*)/is', $item[1], $matches);
+                $items_assoc_tmp[$item[0]][] = [
+                    'course_id' => $matches[1],
+                    'course_name' => $matches[2],
+                    'course_require' => $item[2],
+                    'check_type' => $item[3],
+                    'credit' => $item[4],
+                    'score_a' => $item[5],
+                    'score_b' => $item[6],
+                    'score_c' => $item[7],
+                    'is_passed' => self::is_passed($item[5], $item[6], $item[7]),
+                ];
+            }
 
-        if ($term) {
-            return empty($t[$term]) ? [] : $t[$term];
-        } else {
-            return array_values($t);
+            $items_assoc = [];
+
+            foreach ($items_assoc_tmp as $term_key => $lists) {
+                $items_assoc[] = [
+                    'term' => $term_key,
+                    'lists' => $lists,
+                ];
+
+                if ($term == $term_key) {
+                    return [
+                        'term' => $term_key,
+                        'lists' => $lists,
+                    ];
+                }
+            }
+
+            return $term ? [] : $items_assoc;
+        } catch (\Throwable $th) {
+            throw $th;
         }
     }
     /**
@@ -118,33 +125,59 @@ class Education implements EducationInterface
     public function credit()
     {
         $response = $this->auth_client->get('scoreQuery/stuScoreQue_getStuScore.action');
+
         $html = $response->getBody()->getContents();
 
-        if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
-            throw new UnassessException();
-        }
+        try {
+            if (preg_match('/未评教完成，不能进行成绩查询！/iUs', $html)) {
+                throw new UnassessException();
+            }
 
-        $crawler = new Crawler($html);
-
-        $credit = [];
-        $title = ['class_name', 'name', 'student_id', 'study_status', 'study_warning_status', 'study_warning_status', 'degree_avrage_credit_require', 'degree_avrage_credit_require', 'total_credit_require', 'total_credit_require', 'total_credit_require', 'common_credit', 'common_credit', 'common_credit', 'course_credit', 'course_credit', 'course_credit', 'major_credit', 'major_credit', 'major_credit', 'study_warning_status' => ['should', 'done'], 'degree_avrage_credit_require' => ['get', 'got'], 'total_credit_require' => ['got', 'get', 'own'], 'common_credit' => ['got', 'get', 'own'], 'course_credit' => ['got', 'get', 'own'], 'major_credit' => ['got', 'get', 'own'], ];
-
-        $crawler->filter('.score-count tr')->each(function (Crawler $node, $i) use (&$credit, &$title) {
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$credit, &$title) {
-                if ($i < 4) {
-                    $credit[$title[$i]] = $node->text();
-                } elseif ($i < 8) {
-                    $n = $i % 2;
-                    $credit[$title[($i - $n)]][$title[$title[($i - $n)]][$n]] = $node->text();
-                } else {
-                    $i++;
-                    $n = $i % 3;
-                    $credit[$title[($i - $n)]][$title[$title[($i - $n)]][$n]] = $node->text();
-                }
+            $crawler = new Crawler($html);
+            // 获取数据
+            $items = $crawler->filter('table.personal-socre-tab tr td')->each(function (Crawler $node, $n) {
+                return trim($node->text());
             });
-        });
+            // 按需要 key=>value 组织数据
+            $items_assoc[] = [
+                'class_name' => $items[0],
+                'name' => $items[1],
+                'student_id' => $items[2],
+                'study_status' => $items[3],
+                'study_warning_status' => [
+                    'should' => $items[4],
+                    'done' => $items[5],
+                ],
+                'degree_avrage_credit_require' => [
+                    'get' => $items[6],
+                    'got' => $items[7],
+                ],
+                'total_credit_require' => [
+                    'get' => $items[8],
+                    'got' => $items[9],
+                    'own' => $items[10],
+                ],
+                'common_credit' => [
+                    'get' => $items[11],
+                    'got' => $items[12],
+                    'own' => $items[13],
+                ],
+                'course_credit' => [
+                    'get' => $items[14],
+                    'got' => $items[15],
+                    'own' => $items[16],
+                ],
+                'major_credit' => [
+                    'get' => $items[17],
+                    'got' => $items[18],
+                    'own' => $items[19],
+                ],
+            ];
 
-        return $credit;
+            return $items_assoc;
+        } catch (\Throwable $th) {
+            throw $th;
+        }
     }
     /**
      * 第二课堂学分
@@ -154,47 +187,42 @@ class Education implements EducationInterface
     public function second_credit()
     {
         $response = $this->auth_client->get('scoreQuery/secondCreQue_findSecondCredit.action');
+
         $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-        $username = '';
-        $student_id = '';
-        $th = [];
-        $tr = [];
-        $second_credit = [];
 
-        $crawler->filter('.type_s1')->each(function (Crawler $node, $i) use (&$th) {
-            $th[] = $node->text();
-        });
-
-        $crawler->filter('table tr')->each(function (Crawler $node, $i) use (&$tr, &$username, &$student_id) {
-            if ($i == 0) return;
-
-            $td = [];
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$td) {
-                $td[] = $node->text();
+        try {
+            $crawler = new Crawler($html);
+            // 获取标题
+            $titles = $crawler->filter('.type_s1')->each(function (Crawler $node, $n) {
+                return trim($node->text());
             });
+            // 获取数据
+            $items = $crawler->filter('table tr')->each(function (Crawler $node, $n) {
+                $item = $node->filter('td')->each(function (Crawler $nodec, $nc) {
+                    return trim($nodec->text());
+                });
 
-            if (!empty($td)) {
-                $username = $username ?: $td[1];
-                $student_id = $student_id ?: $td[2];
-
-                $tr[] = [
-                    'scientific' => $td[2],
-                    'art' => $td[3],
-                    'volunteer' => $td[4],
-                    'work' => $td[5],
+                return $item;
+            });
+            // 剔除空数组
+            $items = array_values(array_filter($items));
+            // 按需要 key=>value 组织数据
+            foreach ($items as $key => $item) {
+                $items_assoc[] = [
+                    'title' => $titles[$key],
+                    'credits' => [
+                        'scientific' => floatval($item[2]) ?: 0,
+                        'art' => floatval($item[3]) ?: 0,
+                        'volunteer' => floatval($item[4]) ?: 0,
+                        'work' => floatval($item[5]) ?: 0,
+                    ]
                 ];
             }
-        });
 
-        foreach ($th as $k => $v) {
-            $second_credit[] = [
-                'title' => str_replace('  ', ' ', $v),
-                'credits' => $tr[$k]
-            ];
+            return $items_assoc;
+        } catch (\Throwable $th) {
+            return [];
         }
-
-        return $second_credit;
     }
     /**
      * 课表
@@ -387,29 +415,32 @@ class Education implements EducationInterface
         }
 
         $response = $this->auth_client->get($uri);
+
         $html = $response->getBody()->getContents();
-        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
-        $crawler = new Crawler($html);
-        $exams = ['term' => $term, 'lists' => []];
-        $title = ['xueqi', 'course_name', 'course_type', 'class_name', 'capacity', 'week', 'address', 'address', 'class_number', ];
 
-        $crawler->filter('.table_border tr')->each(function (Crawler $node, $i) use (&$exams, &$title) {
-            if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
-            if ($i == 0) return;
+        $table_array = $this->dataTable2Array($html, '对不起!当前学期未查到相关的考试安排项。');
 
-            $exam = [];
+        $exams = [];
+        // 将原始数组转为需要的key => value格式
+        foreach ($table_array as $item) {
+            $term = $item[0];
 
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$exam, &$title) {
-                $exam[$title[$i]] = $node->text();
-            });
+            $exams[] = [
+                'course_name' => $item[1],
+                'course_type' => $item[2],
+                'class_name' => $item[3],
+                'capacity' => $item[4],
+                'week' => $item[5],
+                'time' => $item[6],
+                'address' => $item[7],
+                'class_number' => $item[8],
+            ];
+        }
 
-            $exams['term'] = $exam['xueqi'];
-            unset($exam['xueqi']);
-            ksort($exam);
-            $exams['lists'][] = $exam;
-        });
-
-        return $exams;
+        return [
+            'term' => $term,
+            'lists' => $exams,
+        ];
     }
     /**
      * 补考安排
@@ -420,31 +451,34 @@ class Education implements EducationInterface
     public function bexam(string $term = '')
     {
         $uri = 'examArrange/stuBKExam_stuBKExam.action';
+
         $uri .= $term ? '?term=' . $term : '';
+
         $response = $this->auth_client->get($uri);
+
         $html = $response->getBody()->getContents();
-        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
-        $crawler = new Crawler($html);
-        $exams = ['term' => $term, 'lists' => []];
-        $title = ['xueqi', 'course_id', 'course_name', 'course_require', 'week', 'time', 'address', ];
 
-        $crawler->filter('.table_border tr')->each(function (Crawler $node, $i) use (&$exams, &$title) {
-            if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
-            if ($i == 0) return;
+        $table_array = $this->dataTable2Array($html, '对不起!当前学期未查到相关的考试安排项。');
 
-            $exam = [];
+        $exams = [];
+        // 将原始数组转为需要的key => value格式
+        foreach ($table_array as $item) {
+            $term = $item[0];
 
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$exam, &$title) {
-                $exam[$title[$i]] = $node->text();
-            });
+            $exams[] = [
+                'course_id' => $item[1],
+                'course_name' => $item[2],
+                'course_require' => $item[3],
+                'week' => $item[4],
+                'time' => $item[5],
+                'address' => $item[6],
+            ];
+        }
 
-            $exams['term'] = $exam['xueqi'];
-            unset($exam['xueqi']);
-            ksort($exam);
-            $exams['lists'][] = $exam;
-        });
-
-        return $exams;
+        return [
+            'term' => $term,
+            'lists' => $exams,
+        ];
     }
     /**
      * 实验安排
@@ -455,30 +489,43 @@ class Education implements EducationInterface
     public function experiment(string $term = '')
     {
         $uri = $term ? '?term=' . $term : '';
+
         $response = $this->auth_client->get('Experiment/StudentExperiment_getExperiment.action' . $uri);
+
         $html = $response->getBody()->getContents();
-        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
-        $crawler = new Crawler($html);
 
-        $experiments = ['term' => $term, 'lists' => []];
-        $title = ['xueqi', 'course_name', 'course_type', 'name', 'type', 'times', 'time', 'address', 'teacher_name', ];
+        $table_array = $this->dataTable2Array($html, '对不起!没有当前学期的实验数据。', '.table_border tr', [
+            'tr' => [
+                'attr' => 'style',
+                'true' => 1,
+                'false' => 0,
+                'condition' => 'background:#eee;',
+            ]
+        ]);
 
-        $crawler->filter('#dis-exam-info tr')->each(function (Crawler $node, $i) use (&$experiments, &$title) {
-            if (preg_match('/对不起!没有当前学期的实验数据。/is', $node->text())) return;
-            if ($i == 0) return;
+        // 将原始数组转为需要的key => value格式
+        $items_assoc = [];
 
-            $experiment = [];
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$experiment, &$title) {
-                $experiment[$title[$i]] = trim($node->text());
-            });
+        foreach ($table_array as $item) {
+            $term = $item[0];
 
-            ksort($experiment);
-            $experiments['term'] = $experiment['xueqi'];
-            unset($experiment['xueqi']);
-            $experiments['lists'][] = $experiment;
-        });
+            $items_assoc[] = [
+                'course_name' => $item[1],
+                'course_type' => $item[2],
+                'name' => $item[3],
+                'type' => $item[4],
+                'times' => $item[5],
+                'time' => $item[6],
+                'address' => $item[7],
+                'teacher_name' => $item[8],
+                'is_date_expired' => $item[9],
+            ];
+        }
 
-        return $experiments;
+        return [
+            'term' => $term,
+            'lists' => $items_assoc
+        ];
     }
     /**
      * 班级名单
@@ -493,34 +540,35 @@ class Education implements EducationInterface
             $class_id = substr($profile['class_id'], 0, 14);
         }
 
-        if (!$class_id) return [];
+        if (!$class_id) {
+            return [];
+        }
 
         $response = $this->auth_client->post('infoQuery/class_findStuNames.action', [
             'form_params' => [
                 'classInfo.classID' => $class_id,
             ],
         ]);
+
         $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-        /**
-         * Mates
-         */
-        $mates = [];
-        $title = ['number', 'name', 'sex', 'class_id', 'student_id', 'study_status', ];
-        $crawler->filter('tr')->each(function (Crawler $node, $i) use (&$mates, &$title) {
-            if ($i == 0) return;
 
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$mates, &$title, &$mate) {
-                $mate[$title[$i]] = $node->text();
-            });
+        $table_array = $this->dataTable2Array($html, 'notPrint');
 
-            ksort($mate);
+        // 将原始数组转为需要的key => value格式
+        $items_assoc = [];
 
-            $mate['sex'] = $mate['sex'] == '女' ? 2 : 1;
-            $mates[] = $mate;
-        });
+        foreach ($table_array as $item) {
+            $items_assoc[] = [
+                'number' => $item[0],
+                'name' => $item[1],
+                'sex' => $item[2] == '女' ? 2 : 1,
+                'class_id' => $item[3],
+                'student_id' => $item[4],
+                'study_status' => $item[5],
+            ];
+        }
 
-        return $mates;
+        return $items_assoc;
     }
     /**
      * 个人资料
@@ -566,35 +614,37 @@ class Education implements EducationInterface
     public function class_number(string $term = '')
     {
         $uri = $term ? '?term=' . $term : '';
+
         $response = $this->auth_client->get('infoQuery/XKStu_findTerm.action' . $uri);
+
         $html = $response->getBody()->getContents();
-        $html = preg_replace('/\s{2,}|\n*|　*/is', '', $html);
-        $crawler = new Crawler($html);
-        /**
-         * numbers
-         */
-        $numbers = [];
-        $title = ['xueqi', 'course_type', 'teach_class_name', 'course_name', 'require', 'check_type', 'period', 'credit', 'class_span', 'teacher_name', 'select_type', 'class_name', 'class_number', ];
 
-        $crawler->filter('#dis-exam-info tbody tr')->each(function (Crawler $node, $i) use (&$numbers, &$title) {
-            if (preg_match('/对不起!当前学期未查到相关/is', $node->text())) return;
-            $number = [];
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$number, &$title) {
-                if ($i == 2 || $i == 3) {
-                    $tmp = trim($node->text());
-                    $tmp = preg_replace('/　+/is', '', $tmp);
-                    $number[$title[$i]] = $tmp;
-                } else {
-                    $number[$title[$i]] = trim($node->text());
-                }
-            });
-            ksort($number);
-            $numbers['term'] = $number['xueqi'];
-            unset($number['xueqi']);
-            $numbers['lists'][] = $number;
-        });
+        $table_array = $this->dataTable2Array($html, '对不起!当前学期未查到相关的考试安排项。');
 
-        return $numbers;
+        // 将原始数组转为需要的key => value格式
+        $items_assoc = [];
+
+        foreach ($table_array as $item) {
+            $items_assoc[] = [
+                'course_type' => $item[1],
+                'class_name' => $item[2],
+                'course_name' => $item[3],
+                'require' => $item[4],
+                'check_type' => $item[5],
+                'period' => $item[6],
+                'credit' => $item[7],
+                'class_span' => $item[8],
+                'teacher_name' => $item[9],
+                'select_type' => $item[10],
+                'teach_class_name' => $item[11],
+                'class_number' => $item[12],
+            ];
+        }
+
+        return [
+            'term' => $term,
+            'lists' => $items_assoc
+        ];
     }
     /**
      * 班级列表
@@ -619,20 +669,26 @@ class Education implements EducationInterface
                 'gra.grade' => $grade,
             ]
         ]);
+
         $html = $response->getBody()->getContents();
+
         $crawler = new Crawler($html);
-        $class_list = [];
 
-        $crawler->filter('option')->each(function (Crawler $node, $i) use (&$class_list) {
-            if ($i == 0) return;
+        // 提取班级列表
+        $items = $crawler->filter('option')->each(function (Crawler $node, $n) {
+            if ($n == 0) {
+                return null;
+            }
 
-            $class_list[] = [
+            return [
                 'class_id' => $node->attr('value'),
                 'class_name' => $node->text(),
             ];
         });
 
-        return $class_list;
+        $items = array_values(array_filter($items));
+
+        return $items;
     }
     /**
      * 学院列表
@@ -642,17 +698,22 @@ class Education implements EducationInterface
     public function college_list()
     {
         $response = $this->auth_client->get('infoQuery/class_findClassList.action');
+
         $html = $response->getBody()->getContents();
+
         $crawler = new Crawler($html);
-        $college_list = [];
 
-        $crawler->filter('#departMent option')->each(function (Crawler $node, $i) use (&$college_list) {
-            if ($i == 0) return;
+        $items = $crawler->filter('#departMent option')->each(function (Crawler $node, $n) {
+            if ($n == 0) {
+                return null;
+            }
 
-            $college_list[] = $node->text();
+            return trim($node->text());
         });
 
-        return $college_list;
+        $items = array_values(array_filter($items));
+
+        return $items;
     }
     /**
      * CAS认证
@@ -803,23 +864,26 @@ class Education implements EducationInterface
     public function notifications(int $page = 1)
     {
         $response = $this->auth_client->get('jwIndex/jwIndex_listXKNotice.action?currentPage=' . $page);
+
         $html = $response->getBody()->getContents();
 
         $crawler = new Crawler($html);
-        $notifications = [];
-        $crawler->filter('ul#remind-xk li')->each(function (Crawler $node, $i) use (&$notifications) {
+
+        $items = $crawler->filter('#postList li')->each(function (Crawler $node, $n) {
             $a = $node->filter('a');
+
             $t = $node->filter('span');
-            $href = $a->attr('href');
-            preg_match('/id=(\d*)/is', $href, $matches);
-            $notifications[] = [
+
+            preg_match('/id=(\d*)/is', $a->attr('href'), $matches);
+
+            return [
                 'resource_id' => $matches[1],
                 'title' => $a->text(),
                 'publish_at' => str_replace('年', '-', str_replace('月', '-', str_replace('日', '', $t->text()))),
             ];
         });
 
-        return $notifications;
+        return $items;
     }
     /**
      * 通知详细内容
@@ -834,21 +898,17 @@ class Education implements EducationInterface
         }
 
         $response = $this->auth_client->get('jwIndex/jwIndex_detailNotice.action?xkNotice.id=' . $resource_id);
+
         $html = $response->getBody()->getContents();
 
         if (preg_match('/对不起，暂无通知信息！/is', $html)) {
-            return [
-                'resource_id' => $resource_id,
-                'title' => '没有找到此消息',
-                'author' => '',
-                'content' => '',
-                'mod_content' => '',
-
-            ];
+            return [];
         }
 
         $crawler = new Crawler($html);
+
         $title = $crawler->filter('div#details h2')->first()->text();
+
         preg_match('/发布人：(.*)/is', $crawler->filter('div#details p.au-info')->text(), $matches);
         $author = $matches[1];
         $content = $crawler->filter('div#details div.context')->html();
@@ -1097,54 +1157,104 @@ class Education implements EducationInterface
      */
     private function scheduleTable2Array($html)
     {
-        $crawler = new Crawler($html);
+        try {
+            $crawler = new Crawler($html);
 
-        $schedules = $crawler->filter('#courseSche tr')->each(function (Crawler $node, $n) {
-            if ($n == 0) {
-                return null;
-            }
-
-            $schedule_tmp = $node->filter('td')->each(function (Crawler $nodec, $nc) {
-                if ($nc == 0) {
-                    return $nodec->text();
+            $schedules = $crawler->filter('#courseSche tr')->each(function (Crawler $node, $n) {
+                if ($n == 0) {
+                    return null;
                 }
 
-                $td = $nodec->html();
+                $schedule_tmp = $node->filter('td')->each(function (Crawler $nodec, $nc) {
+                    if ($nc == 0) {
+                        return $nodec->text();
+                    }
 
-                $tds = explode('<br>', trim($td));
-                $tds = array_filter(array_map(function ($var) {
-                    return trim($var);
-                }, $tds));
+                    $td = $nodec->html();
 
-                // 剔除只有一个元素的数组，其实是一个干扰，无法通过替换等操作去除
-                return count($tds) == 1 ? [] : array_values($tds);
+                    $tds = explode('<br>', trim($td));
+                    $tds = array_filter(array_map(function ($var) {
+                        return trim($var);
+                    }, $tds));
+
+                    // 剔除只有一个元素的数组，其实是一个干扰，无法通过替换等操作去除
+                    return count($tds) == 1 ? [] : array_values($tds);
+                });
+
+                $schedule = array_values(array_filter($schedule_tmp, function ($var) {
+                    return is_array($var);
+                }));
+                return $schedule;
+            });
+            // 剔除空数组
+            $schedules = array_values(array_filter($schedules));
+
+            $maps = [
+                'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun',
+            ];
+
+            // 将原始数组转为day => schedule形式
+            $schedules_assoc = [];
+            foreach ($schedules[0] as $key => $value) {
+                $schedules_assoc[$maps[$key]] = [
+                    $schedules[0][$key],
+                    $schedules[1][$key],
+                    $schedules[2][$key],
+                    $schedules[3][$key],
+                    $schedules[4][$key],
+                    $schedules[5][$key],
+                ];
+            }
+
+            return $schedules_assoc;
+        } catch (\Throwable $th) {
+            return [];
+        }
+    }
+    /**
+     * 将数据表格转为数组
+     *
+     * @param string $html
+     * @param string $data_is_null 没有数据时的匹配内容
+     * @param string $table_tag
+     * @param array $options
+     * @return array
+     */
+    private function dataTable2Array(string $html, string $data_is_null, string $table_tag = '.table_border tr',  array $options = [])
+    {
+        // 将表格数据转为数组
+        $items = [];
+
+        try {
+            if (preg_match('/' . $data_is_null . '/is', $html)) {
+                throw new \Exception("没有数据。", 1);
+            }
+
+            $crawler = new Crawler($html);
+
+            $items = $crawler->filter($table_tag)->each(function (Crawler $node, $n) use ($options) {
+                if ($n == 0) {
+                    return null;
+                }
+
+                $item = $node->filter('td')->each(function (Crawler $nodec, $nc) {
+                    return trim($nodec->text());
+                });
+
+                if ($options) {
+                    foreach ($options as $tag => $rule) {
+                        $item[] = $node->filter($tag)->attr($rule['attr']) == $rule['condition'] ? $rule['true'] : $rule['false'];
+                    }
+                }
+
+                return $item;
             });
 
-            $schedule = array_values(array_filter($schedule_tmp, function ($var) {
-                return is_array($var);
-            }));
-            return $schedule;
-        });
-        // 剔除空数组
-        $schedules = array_values(array_filter($schedules));
-
-        $maps = [
-            'Mon', 'Tues', 'Wed', 'Thur', 'Fri', 'Sat', 'Sun',
-        ];
-
-        // 将原始数组转为day => schedule形式
-        $schedules_assoc = [];
-        foreach ($schedules[0] as $key => $value) {
-            $schedules_assoc[$maps[$key]] = [
-                $schedules[0][$key],
-                $schedules[1][$key],
-                $schedules[2][$key],
-                $schedules[3][$key],
-                $schedules[4][$key],
-                $schedules[5][$key],
-            ];
+            $items = array_values(array_filter($items));
+        } catch (\Throwable $th) {
+            $items = [];
         }
 
-        return $schedules_assoc;
+        return $items;
     }
 }
