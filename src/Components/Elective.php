@@ -1,5 +1,5 @@
 <?php
-/*
+ /*
  * @Author: Megoc 
  * @Date: 2019-01-17 09:37:42 
  * @Last Modified by: Megoc
@@ -47,7 +47,7 @@ class Elective implements ElectiveInterface
         }
     }
     /**
-     * course list
+     * 选课信息
      *
      * @param string $term
      * @return array
@@ -57,73 +57,78 @@ class Elective implements ElectiveInterface
         $uri = $term ? 'common/common_getSelectedCourses.action?term=' . $term : 'common/common_selectedCourse.action';
 
         $response = $this->auth_client->get($uri);
+
         $html = $response->getBody()->getContents();
-        $html = preg_replace('/\s{2,}|\n*/is', '', $html);
-        $crawler = new Crawler($html);
 
-        $courses = [];
-        $title = ['xueqi', 'select_type', 'class_name', 'course', 'require', 'check_type', 'period', 'credit', 'class_span', 'teacher_name', 'course_type', 'course_plan', 'capacity', 'selected_number', 'action'];
+        $table_array = $this->courseTable2Array($html);
 
-        $crawler->filter('table#course-data tr')->each(function (Crawler $node, $i) use (&$courses, &$title, &$term) {
-            if ($i == 0) return;
+        // 转为 key => value形式
+        $items_assoc = [];
 
-            $course = [];
-            $node->filter('td')->each(function (Crawler $node, $i) use (&$course, &$title, &$term) {
-                $course[$title[$i]] = trim($node->text());
-
-                if ($i == 9) {
-                    $href = $node->filter('a')->attr('href');
-                    preg_match('/teachTaskId=(.*)/is', $href, $matches);
-                    $teacher_task_id = $matches[1];
-                    $course['teacher_task_id'] = $teacher_task_id;
-                }
-            });
-
-            $term = $course['xueqi'];
-            unset($course['xueqi']);
-            ksort($course);
-            $courses[] = $course;
-        });
+        foreach ($table_array as $item) {
+            $term = $item[0];
+            $items_assoc[] = [
+                'course_id' => $item[17],
+                'course_name' => $item[3],
+                'course_type' => $item[1],
+                'require' => $item[4],
+                'check_type' => $item[5],
+                'class_name' => $item[2],
+                'period' => $item[6],
+                'credit' => $item[7],
+                'class_span' => $item[8],
+                'teacher_name' => $item[9],
+                'select_type' => $item[10],
+                'course_plan' => $item[11],
+                'capacity' => $item[12],
+                'select_number' => $item[13],
+                'teacher_task_id' => $item[16],
+                'action' => $item[14],
+            ];
+        }
 
         return [
             'term' => $term,
-            'lists' => $courses
+            'lists' => $items_assoc
         ];
     }
     /**
-     * profile
+     * 个人信息
      *
      * @return array
      */
     public function profile()
     {
         $response = $this->auth_client->get('index/index_getPersonalInfo.action');
-        $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-        $profile = [];
-        $title = ['name', 'sex', 'student_id', 'class_name', 'class_id', 'campus', 'rotc', 'english_level', 'study_warning', 'study_status', 'minor_degree_class_id', 'current_term', 'minor_degree_class_name', 'course_select_term', ];
 
-        $crawler->filter('table#infoTable tr')->each(function (Crawler $node, $i) use (&$profile, $title) {
-            $node->filter('td')->each(function (Crawler $node, $j) use (&$profile, $title, $i) {
-                if ($j == 1) {
-                    $profile[$title[$i * 2]] = trim($node->text());
-                    return;
-                }
-                if ($j == 3) {
-                    $profile[$title[$i * 2 + 1]] = trim($node->text());
-                    return;
-                }
-            });
+        $html = $response->getBody()->getContents();
+
+        $crawler = new Crawler($html);
+
+        $items = $crawler->filter('table#infoTable tr td')->each(function (Crawler $node, $n) {
+            return trim($node->text());
         });
 
-        if ($profile['student_id'] == '2015031002000422') {
-            $profile['sex'] = '女';
+        $items_assoc = [
+            'name' => $items[1],
+            'sex' => $items[3] == '女' ? 2 : 1,
+            'student_id' => $items[5],
+            'class_name' => $items[7],
+            'class_id' => $items[9],
+            'campus' => $items[11],
+            'english_level' => $items[13],
+            'is_rotc' => $items[14] == '国防生' ? 1 : 0,
+            'study_status' => $items[17],
+            'study_warning' => $items[19],
+            'minor_degree_class_id' => $items[23],
+            'minor_degree_class_name' => $items[27],
+        ];
+
+        if ($items_assoc['student_id'] == '2015031002000422') {
+            $items_assoc['sex'] = 2;
         }
 
-        $profile['sex'] = $profile['sex'] == '女' ? 2 : 1;
-        ksort($profile);
-
-        return $profile;
+        return $items_assoc;
     }
     /**
      * public course list
@@ -137,10 +142,13 @@ class Elective implements ElectiveInterface
 
         try {
             $response = $this->auth_client->get($uri);
+
             $html = $response->getBody()->getContents();
         } catch (ServerException $e) {
             $this->auth_client->get('xkNotice_getXKNoticeInfo.action?xkSelectType=4&eduType=1');
+
             $response = $this->auth_client->get($uri);
+
             $html = $response->getBody()->getContents();
         }
 
@@ -199,7 +207,7 @@ class Elective implements ElectiveInterface
         ];
     }
     /**
-     * teacher resume
+     * 教师简历
      *
      * @param string $teacher_id
      * @return array
@@ -211,39 +219,58 @@ class Elective implements ElectiveInterface
         }
 
         $response = $this->auth_client->get('Resume/Resume_iniEditResume.action?teachTaskId=' . $teacher_id);
+
         $html = $response->getBody()->getContents();
 
-        if (preg_match('/教师个人简介暂未审核，无法查看！/is', $html)) {
+        try {
+            if (preg_match('/教师个人简介暂未审核，无法查看！/is', $html)) {
+                throw new \Exception("没有简历信息", 1);
+            }
+
+            $crawler = new Crawler($html);
+            // 获取头像
+            $photo_uri = $crawler->filter('img.head-img')->attr('src');
+
+            $photo_response = $this->auth_client->get($photo_uri);
+            // 将头像转为base64编码
+            if ($photo_response->getStatusCode() == 200) {
+                $photo = base64_encode($photo_response->getBody()->getContents());
+            } else {
+                $photo = null;
+            }
+
+            $items = $crawler->filter('td.v')->each(function (Crawler $node, $n) {
+                return trim($node->text());
+            });
+
+            $cv_items = $crawler->filter('.cv-item div.items')->each(function (Crawler $node, $n) {
+                return trim($node->html());
+            });
+
+            return [
+                'name' => $items[0],
+                'sex' => $items[1],
+                'photo' => $photo,
+                'nation' => $items[2],
+                'birth_day' => $items[4],
+                'belong_uint' => $items[5],
+                'party' => $items[6],
+                'teacher_level' => $items[7],
+                'highest_degree' => $items[8],
+                'highest_education' => $items[9],
+                'position' => $items[10],
+                'admission_at' => $items[11],
+                'teaching' => $cv_items[0],
+                'scientific' => $cv_items[1],
+            ];
+
+            return $items;
+        } catch (\Throwable $th) {
             return [];
         }
-
-        $crawler = new Crawler($html);
-        $resume = [];
-        $title = ['name', 'sex', 'nation', 'native_place', 'birth_day', 'belong_unit', 'party', 'technical_title', 'highest_education', 'highest_degree', 'position', 'admission_date', ];
-        $avatar_img_url = $crawler->filter('img.head-img')->attr('src');
-        $crawler->filter('td.v')->each(function (Crawler $node, $i) use (&$resume, $title) {
-            $resume[$title[$i]] = $node->text();
-        });
-        $crawler->filter('div.cv-item')->each(function (Crawler $node, $i) use (&$resume, $title) {
-            if ($i == 1) {
-                $string = trim($node->html());
-                $string = preg_replace('/\s{2,}|\n*/is', '', $string);
-                $resume['teaching_situation'] = $string;
-            }
-            if ($i == 2) {
-                $string = trim($node->html());
-                $string = preg_replace('/\s{2,}|\n*/is', '', $string);
-                $resume['scientific'] = $string;
-            }
-        });
-        $phote_response = $this->auth_client->get($avatar_img_url);
-        $resume['photo'] = base64_encode($phote_response->getBody()->getContents());
-        ksort($resume);
-
-        return $resume;
     }
     /**
-     * select state
+     * 选课状态
      *
      * @return array
      */
@@ -389,5 +416,45 @@ class Elective implements ElectiveInterface
             throw new \Exception("Uninque id is needed!", 1);
         }
     }
+    /**
+     * 将已选课程表格转为数组
+     *
+     * @param string $html
+     * @return array
+     */
+    private function courseTable2Array(string $html)
+    {
+        // 将表格数据转为数组
+        $items = [];
 
+        try {
+            if (preg_match('/本学期你还未选修任何课程！/is', $html)) {
+                throw new \Exception("没有数据。", 1);
+            }
+
+            $crawler = new Crawler($html);
+
+            $items = $crawler->filter('#course-data tr')->each(function (Crawler $node, $n) {
+                if ($n == 0) {
+                    return null;
+                }
+                // 获取单个课程信息
+                $item = $node->filter('td')->each(function (Crawler $nodec, $nc) {
+                    return trim($nodec->text());
+                });
+                // 获取隐藏的表单信息
+                $inputs = $node->filter('input')->each(function (Crawler $nodec, $nc) {
+                    return trim($nodec->attr('value'));
+                });
+
+                return array_merge($item, $inputs);
+            });
+
+            $items = array_values(array_filter($items));
+        } catch (\Throwable $th) {
+            $items = [];
+        }
+
+        return $items;
+    }
 }

@@ -578,32 +578,28 @@ class Education implements EducationInterface
     public function profile()
     {
         $response = $this->auth_client->get('stuMag/UserInfoAction_findUserInfo.action');
-        $html = $response->getBody()->getContents();
-        $crawler = new Crawler($html);
-        /**
-         * save profile
-         */
-        $profile = [];
-        $title = ['student_id', 'class_id', 'name', 'class_name', 'sex', 'nation', 'birthday', 'id_card', 'party', 'native_place', 'training_plan', 'english_level', 'study_status', 'punish_status', 'college_eaxm_number', 'college_eaxm_score', 'student_origin', ];
 
-        $crawler->filter('#info_detail td.v')->each(function (Crawler $node, $i) use (&$profile, &$title) {
-            $profile[$title[$i]] = trim($node->text());
+        $html = $response->getBody()->getContents();
+
+        $crawler = new Crawler($html);
+
+        $items = $crawler->filter('#info_detail td.v')->each(function (Crawler $node, $in) {
+            return trim($node->text());
         });
 
-        unset($profile['id_card']);
-        unset($profile['party']);
-
-        if (!empty($profile['student_id']) && $profile['student_id'] == '2015031002000422') {
-            $profile['sex'] = '女';
-        }
-
-        if (!empty($profile['sex'])) {
-            $profile['sex'] = $profile['sex'] == '女' ? 2 : 1;
-        }
-
-        ksort($profile);
-
-        return $profile;
+        return [
+            'name' => $items[2],
+            'sex' => $items[4] == '女' ? 2 : 1,
+            'student_id' => $items[0],
+            'course_id' => $items[1],
+            'class_name' => $items[3],
+            'nation' => $items[5],
+            'birth_day' => $items[6],
+            'party' => $items[8],
+            'english_level' => $items[11],
+            'study_status' => $items[12],
+            'warning_status' => $items[13],
+        ];
     }
     /**
      * 小班序号
