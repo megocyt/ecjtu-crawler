@@ -591,7 +591,7 @@ class Education implements EducationInterface
             'name' => $items[2],
             'sex' => $items[4] == '女' ? 2 : 1,
             'student_id' => $items[0],
-            'course_id' => $items[1],
+            'class_id' => $items[1],
             'class_name' => $items[3],
             'nation' => $items[5],
             'birth_day' => $items[6],
