@@ -150,6 +150,7 @@ trait HelperTraits
             'timeout' => 10,
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+                'X-Real-IP'  => long2ip(mt_rand(1884815360, 1884890111)),
             ],
         ]);
 
@@ -164,6 +165,7 @@ trait HelperTraits
                 'headers' => [
                     'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
                     'Cookie' => $this->cache_handler->get($uid),
+                    'X-Real-IP'  => long2ip(mt_rand(1884815360, 1884890111)),
                 ],
             ]);
         } else {
@@ -185,8 +187,10 @@ trait HelperTraits
 
         $client = new Client([
             'timeout' => $options['timeout'] ?? 10,
+            'base_uri' => self::BASE_URI,
             'headers' => [
                 'User-Agent' => 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/67.0.3396.99 Safari/537.36',
+                'X-Real-IP'  => long2ip(mt_rand(1884815360, 1884890111)),
             ],
         ]);
 
@@ -194,14 +198,24 @@ trait HelperTraits
 
         $method = in_array(strtolower($method), $methods) ? strtolower($method) : 'get';
 
-        $response = $client->request($method, $url, [
+        $request_options =  array(
             'form_params' => $options['payload'] ?? [],
-            'headers' => $options['headers'] ?? [],
             'verify' => false
-        ]);
+        );
 
-        $body = $response->getBody()->getContents();
+        unset($options['payload']);
+        $request_options += $options;
 
-        return $body;
+        $response = $client->request($method, $url, $request_options);
+
+        $data['staus'] = $response->getStatusCode();
+        $data['Header'] = $response->getHeaders();
+        $data['Body'] = $response->getBody()->getContents();
+
+        if ($cookie = $response->getHeader('Set-Cookie')) {
+            $data['Cookie'] = join('', $cookie);
+        }
+
+        return $data;
     }
 }
