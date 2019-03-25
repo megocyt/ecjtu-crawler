@@ -865,21 +865,38 @@ class Education implements EducationInterface
 
         $crawler = new Crawler($html);
 
-        $items = $crawler->filter('#postList li')->each(function (Crawler $node, $n) {
-            $a = $node->filter('a');
-
-            $t = $node->filter('span');
-
-            preg_match('/id=(\d*)/is', $a->attr('href'), $matches);
-
-            return [
-                'resource_id' => $matches[1],
-                'title' => $a->text(),
-                'publish_at' => str_replace('年', '-', str_replace('月', '-', str_replace('日', '', $t->text()))),
-            ];
+        $page_items = $crawler->filter('input')->each(function (Crawler $node, $n) {
+            return trim($node->attr('value'));
         });
 
-        return $items;
+        $current = $page_items[0];
+        $total = $page_items[1];
+
+        if (preg_match('/对不起，当前没有更多数据！/is', $html)) {
+            $items = [];
+        } else {
+            $items = $crawler->filter('#postList li')->each(function (Crawler $node, $n) {
+                $a = $node->filter('a');
+
+                $t = $node->filter('span');
+
+                preg_match('/id=(\d*)/is', $a->attr('href'), $matches);
+
+                return [
+                    'resource_id' => $matches[1],
+                    'title' => $a->text(),
+                    'publish_at' => str_replace('年', '-', str_replace('月', '-', str_replace('日', '', $t->text()))),
+                ];
+            });
+        }
+
+        return [
+            'current' => intval($current),
+            'first' => 1,
+            'next' => ($next = $current + 1) > $total ? null : $next,
+            'last' => intval($total),
+            'lists' => $items,
+        ];
     }
     /**
      * 通知详细内容
